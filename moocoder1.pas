@@ -1,0 +1,1422 @@
+unit moocoder1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Win.ScktComp, Vcl.StdCtrls,inifiles,
+  Vcl.ExtCtrls, Vcl.ComCtrls,WinAPI.RichEdit,DateUtils,StrUtils,wgplib,generics.collections,
+  Vcl.Menus, Vcl.AppEvnts,ClipBrd,Math,RegularExpressions,mushreplace,
+  System.Actions, Vcl.ActnList;
+
+type
+  TxControl = class of TControl;
+
+  TExamineLine = procedure(sender:TObject; line:String) of object;
+  TForm1 = class(TForm)
+    Panel1: TPanel;
+    Edit1: TEdit;
+    Button1: TButton;
+    ClientSocket1: TClientSocket;
+    CheckBox1: TCheckBox;
+    Memo2: TMemo;
+    tmrQueue: TTimer;
+    PageControl1: TPageControl;
+    tbMain: TTabSheet;
+    Memo1: TRichEdit;
+    Button2: TButton;
+    StatusBar1: TStatusBar;
+    btnCompile: TButton;
+    PopupMenu1: TPopupMenu;
+    GotoLine1: TMenuItem;
+    ApplicationEvents1: TApplicationEvents;
+    FindTab1: TMenuItem;
+    NewTab1: TMenuItem;
+    Refresh1: TMenuItem;
+    btnVerbs: TButton;
+    tbVerbs: TTabSheet;
+    lvVerbs: TListView;
+    Find1: TMenuItem;
+    FindAgain1: TMenuItem;
+    Replace1: TMenuItem;
+    MainMenu1: TMainMenu;
+    Project1: TMenuItem;
+    Compile1: TMenuItem;
+    ActionList1: TActionList;
+    ActCompile: TAction;
+    actVerb: TAction;
+    Verb1: TMenuItem;
+    actNewVerb: TAction;
+    NewVerb1: TMenuItem;
+    procedure ClientSocket1Connect(Sender: TObject; Socket: TCustomWinSocket);
+    procedure ClientSocket1Disconnect(Sender: TObject;
+      Socket: TCustomWinSocket);
+    procedure ClientSocket1Read(Sender: TObject; Socket: TCustomWinSocket);
+    procedure Button1Click(Sender: TObject);
+    procedure CheckBox1Click(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
+    procedure tmrQueueTimer(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+    procedure Memo1SelectionChange(Sender: TObject);
+    procedure PageControl1Change(Sender: TObject);
+    procedure btnCompileClick(Sender: TObject);
+    procedure ClientSocket1Write(Sender: TObject; Socket: TCustomWinSocket);
+    procedure Button4Click(Sender: TObject);
+    procedure Memo1Change(Sender: TObject);
+    procedure GotoLine1Click(Sender: TObject);
+    procedure Memo2DblClick(Sender: TObject);
+    procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
+    procedure FindTab1Click(Sender: TObject);
+    procedure NewTab1Click(Sender: TObject);
+    procedure Refresh1Click(Sender: TObject);
+    procedure btnVerbsClick(Sender: TObject);
+    procedure lvVerbsDblClick(Sender: TObject);
+    procedure Find1Click(Sender: TObject);
+    procedure FindAgain1Click(Sender: TObject);
+    procedure Replace1Click(Sender: TObject);
+    procedure actNewVerbExecute(Sender: TObject);
+  private
+    testtab:TTabSheet;
+    getstack:Boolean;
+    lastobj:String;
+    lastlno:Integer;
+    errorobj,errorverb:String;
+    findstr:String;
+    replstr:String;
+    useselection:Boolean;
+    replall:Boolean;
+    findcase:Boolean;
+    procedure ProcessEscape(cmd: String);
+    procedure ResetStyle;
+    procedure SetBackColor(re: TRichEdit; acolor: TColor);
+    procedure ProcessDump;
+    function AddTab(caption,txt:String; iscode:Integer): TTabsheet;
+    function CurrentEditor: TRichEdit;
+    function CurrentTest:TEdit;
+    procedure SetChanged(sender: TObject; value: Boolean);
+    function GetLineNo: Integer;
+    procedure SetLineNo(const Value: Integer);
+    function TestName(tb:TTabsheet):String;
+    function FindByType(aparent:TWinControl; t:String): TControl;
+    procedure SyntaxHighlight(re: TRichEdit; lno: Integer);
+    procedure SetSynColor(re: TRichEdit; color: TColor; lno, x, len: Integer);
+    function IsInList(aword: String; const words: array of String): Boolean;
+    procedure ProcessVerb(t: TStrings);
+    procedure UpdateVerbs;
+    procedure DoCheckName(sender: TObject; line: String);
+    function FindVerbEditor(obj, verb:String): TRichEdit;
+    function FindVerbHelp(obj, verb: String): String;
+    procedure FetchVerb(obj, verb: String);
+    procedure CheckName(obj: String);
+    procedure FitListContents(alistview: TListView);
+    procedure FindVerb(obj, verb: String; lno: Integer);
+    function parseVerb(value: String; var obj, verb: String): Boolean;
+    procedure DoFind;
+    procedure DoReplace;
+    { Private declarations }
+  public
+    { Public declarations }
+    isEsc:Boolean;
+    isCSI:Boolean;
+    escparams:TStringList;
+    isIAT:Boolean;
+    iatCMD:Char;
+    currenttext:String;
+    myparam:String;
+    mycolor:TColor;
+    myfontStyle:TFontStyles;
+    myfontcolor:TColor;
+    optioncount:Integer;
+    connectcmd:String;
+    msgqueue:TStringList;
+    queued:TDatetime;
+    dumpobject:String;
+    capture:Boolean;
+    captureList:String;
+    lastdata:TDatetime;
+    ifile:TInifile;
+    sendbuffer:AnsiString;
+    lastline:String;
+    thisline:String;
+    OnExamineLine:TExamineLine;
+    SynLine:Integer;
+    synWait:TDatetime;
+    lastverb:String;
+    verbcollect:String;
+    verblist:TStringList;
+    namelist:TStringList;
+    whenfinished:TThreadProcedure;
+    function StripAnsi(s:String):String;
+    function SelectError(obj, verb: String; lno: Integer): Boolean;
+    procedure AddChar(c:Char);
+    procedure Flush;
+    procedure Addln(msg:String);
+    procedure AddDebug(msg:String);
+    procedure SendBulk(s:AnsiString);
+    procedure DoCheckCompile(sender:TObject; line:String);
+    procedure DoCheckTest(sender:TObject; line:String);
+    procedure DoCheckVerb(sender:TObject; line:String);
+    procedure DoCheckVerbs(sender:TObject; line:String);
+    property LineNo:Integer read GetLineNo write SetLineNo;
+    procedure DoKeyPress(sender:TObject; var key:Char);
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+const
+  ColorTable:Array[0..7] of TColor = (clBlack,clRed,clLime,clYellow,clBlue,clFuchsia, clAqua,clWhite);
+  SE =  #240;  //End of subnegotiation parameters.
+  NOP=  #241;  //No operation.
+  DataMark=#242;    //The data stream portion of a Synch.
+  BRK=#243;    // NVT character BRK.
+  IP=#244; //    The function IP.
+  AO=#245; //   Abort output
+  AYT=#246; //    Are You There
+  EC=#247; //   Erase character         The function EC.
+  EL=#248; //2    Erase Line              The function EL.
+  GA=#249; //    Go ahead                The GA signal.
+  SB=#250; //    Indicates that what follows is subnegotiation of the indicated option.
+  WILL=#251; //Indicates the desire to begin  performing, or confirmation that you are now performing, the indicated option.
+  WONT=#252;  //  Indicates the refusal to perform, or continue performing, the indicated option.
+  _DO=#253;   // Indicates the request that the other party perform, or confirmation that you are expecting the other party to perform, the indicated option.
+  DONT=#254; // Indicates the demand that the other party stop performing, or confirmation that you are no he other party to perform, the indicated option.
+  IAC=#255;
+
+  lf=#10;
+  cr=#13;
+  crlf=cr+lf;
+
+  keywords:Array[1..12] of String = ('if','then','else','elseif','for','while','endfor','endwhile','endif',
+           'try','except','endtry');
+
+function Tform1.IsInList(aword:String; const words:Array of String):Boolean;
+var s:String;
+begin
+  for s in words do
+  begin
+    if ansiSameText(aword,s) then exit(true);
+  end;
+  result:=false;
+end;
+
+procedure TForm1.lvVerbsDblClick(Sender: TObject);
+var nd:TListItem; obj,verb:string;
+begin
+  nd:=lvVerbs.Selected;
+  obj:=nd.Caption;
+  verb:=nd.SubItems[1];
+  FindVerb(obj,verb,0);
+end;
+
+procedure TForm1.FindVerb(obj,verb:String; lno:Integer);
+begin
+  lastlno:=lno;
+  if not(SelectError(obj,verb,lno)) then FetchVerb(obj,verb);
+end;
+
+function TForm1.SelectError(obj, verb: String; lno: Integer):Boolean;
+var i:Integer; re:TRichEdit;
+begin
+  for i:=2 to pagecontrol1.PageCount-1 do
+  begin
+    re:=FindByType(pagecontrol1.Pages[i],'TRichEdit') as TRichEdit;
+    if (re<>nil) and (re.Lines.Count>0) then
+    begin
+      if AnsiContainsText(re.Lines[0]+' ',obj+':'+verb+' ') then
+      begin
+        pagecontrol1.ActivePageIndex:=i;
+        LineNo:=lno;
+        CurrentEditor.SelLength:=length(currentEditor.Lines[lno]);
+        CurrentEditor.SetFocus;
+        PageControl1Change(self);
+        exit(true);
+      end;
+    end;
+  end;
+  result:=false;
+end;
+
+procedure TForm1.SendBulk(s: AnsiString);
+begin
+  sendbuffer:=sendbuffer+s;
+  ClientSocket1Write(self,clientSocket1.Socket);
+  if sendbuffer='' then
+end;
+
+procedure TForm1.SetBackColor(re:TRichEdit; acolor:TColor);
+var format:TCharFormat2;
+begin
+  fillchar(format,sizeof(format),0);
+  format.cbSize:=sizeof(format);
+  SendGetStructMessage(re.Handle, EM_GETCHARFORMAT,WPARAM(SCF_SELECTION), Format, True);
+  format.dwMask:=format.dwMask or CFM_BACKCOLOR;
+  format.crBackColor:=acolor;
+  re.Perform(EM_SETCHARFORMAT,SCF_SELECTION,@format);
+end;
+
+procedure TForm1.actNewVerbExecute(Sender: TObject);
+var s,obj,verb:String;
+begin
+  s:='';
+  if not(InputQuery('Verb','New verb definition',s)) then exit;
+  if not(parseVerb(s,obj,verb)) or not(obj.StartsWith('#')) then
+  begin
+    MessageDlg('Invalid form. #(objectid):verb dopj prep iobj'+crlf+
+               'ie: #151:widget this any any',mtWarning,[mbCancel],0);
+    exit;
+  end;
+  msgqueue.Add('@verb '+s);
+  msgqueue.Add('@program '+obj+':'+verb);
+  msgqueue.Add('"'+obj+':'+verb+'";');
+  msgqueue.Add('.');
+  whenfinished:=procedure
+  begin
+    FetchVerb(obj,verb);
+  end;
+  queued:=now;
+end;
+
+procedure TForm1.AddChar(c: Char);
+var iatopt:Integer; s:String;
+begin
+  if isIAT then
+  begin
+    if optioncount>0 then
+    begin
+      iatopt:=ord(c);
+      if iatcmd=will then
+      begin
+        adddebug('WILL '+inttostr(iatopt));
+        if iatopt=42 then ClientSocket1.Socket.SendText(iac+dont+Ansichar(iatopt))
+        else ClientSocket1.Socket.SendText(iac+_do+Ansichar(iatopt));
+      end
+      else if iatcmd=wont then
+      begin
+        adddebug('WON''T '+inttostr(iatopt));
+        ClientSocket1.Socket.SendText(iac+DONT+Ansichar(iatopt));
+      end
+      else if iatcmd=_DO then
+      begin
+        case iatopt of
+        34: s:='Linemode';
+        24: s:='Terminal Type';
+        31: s:='Negotiate Window Size';
+        else s:=inttostr(iatopt);
+        end;
+        adddebug('DO '+s);
+        ClientSocket1.Socket.SENDTEXT(iac+WILL+Ansichar(iatopt));
+      end
+      else if iatcmd=DONT then
+      begin
+        adddebug('DON''T '+inttostr(iatopt));
+        ClientSocket1.Socket.SendText(iac+WONT+Ansichar(iatopt));
+      end;
+      isIAT:=false;
+    end
+    else
+    begin
+      iatCMD:=c;
+      if iatCMD in [WILL,WONT,_DO,DONT] then optioncount:=1
+      else optioncount:=0;
+      if optioncount=0 then
+      begin
+        adddebug('Cmd='+Inttostr(ord(iatCmd)));
+        isIAT:=false;
+      end;
+    end
+  end
+  else if c=IAC then
+  begin
+    isIAT:=true;
+    optioncount:=0;
+  end
+  else if c=#27 then
+  begin
+    flush;
+    isEsc:=true;
+    iscsi:=false;
+    myparam:='';
+    escparams.Clear;
+  end
+  else if isEsc then
+  begin
+    if isCSI then
+    begin
+      if c in ['0'..'9'] then myparam:=myparam+c
+      else if c=';' then
+      begin
+        escparams.Append(myparam);
+        myparam:='';
+      end
+      else if c in ['A'..'Z','a'..'z'] then
+      begin
+        escparams.Append(myparam);
+        myparam:='';
+        isesc:=false;
+        iscsi:=false;
+        ProcessEscape(c);
+      end;
+    end
+    else if c='[' then isCSI:=true
+    else isEsc:=false;
+  end
+  else
+  begin
+    lastdata:=now;
+    if capture then
+    begin
+      captureList:=captureList+c;
+      if AnsiEndsText('***finished***',capturelist) then ProcessDump;
+    end;
+    if (c=lf) then
+    begin
+      lastline:=thisline;
+      thisline:='';
+      if assigned(OnExamineLine) then OnExamineLine(self,trimright(lastline));
+    end
+    else thisline:=thisline+c;
+    currentText:=currentText+c;
+  end;
+end;
+
+procedure TForm1.Refresh1Click(Sender: TObject);
+var re:TRichEdit; obj,verb,s:String;
+begin
+  re:=CurrentEditor;
+  if (re=nil) or (re.Parent.Tag<1) then exit;
+  if (re.Lines.Count<1) then exit;
+  s:=re.Lines[0];
+  if ParseVerb(s,obj,verb) then
+  begin
+    FetchVerb(obj,verb);
+  end;
+end;
+
+procedure TForm1.Replace1Click(Sender: TObject);
+begin
+  with frmReplace do
+  begin
+    eFind.Text:=findstr;
+    eReplace.Text:=replstr;
+    ckSelection.Checked:=CurrentEditor.SelLength>0;
+    if ShowModal=mrOK then
+    begin
+      findstr:=eFind.Text;
+      replstr:=eReplace.Text;
+      useSelection:=ckSelection.Checked;
+      replall:=ckAll.checked;
+      findcase:=ckCase.Checked;
+      DoReplace;
+    end;
+  end;
+end;
+
+procedure TForm1.FetchVerb(obj,verb:String);
+begin
+  Edit1.Text:='@list '+obj+':'+verb+' without numbers'; button1.CLick;
+  Edit1.Text:=';player:tell("***finished***")'; button1.CLick;
+  verbcollect:='';
+  OnExamineLine:=DoCheckVerb;
+end;
+
+procedure TForm1.ResetStyle;
+begin
+  mycolor:=clBlack;
+  myfontColor:=clWhite;
+  myfontStyle:=[];
+end;
+
+procedure TForm1.ProcessEscape(cmd:String);
+var p:String; n:Integer;
+
+begin
+  for p in escparams do
+  begin
+    if p='' then continue;
+    n:=StrToInt(p);
+    case n of
+    0: ResetStyle;
+    1: myfontstyle:=myfontstyle+[fsBold];
+    2: myfontstyle:=myfontstyle-[fsBold];
+    3: myfontstyle:=myfontstyle+[fsItalic];
+    4: myfontstyle:=myfontstyle+[fsUnderline];
+    9: myfontstyle:=myfontstyle+[fsStrikeOut];
+    30..37: begin
+              myfontcolor:=ColorTable[n mod 10];
+            end;
+    end;
+  end;
+end;
+
+procedure TForm1.AddDebug(msg: String);
+begin
+  Memo2.Lines.Add(msg);
+end;
+
+procedure TForm1.Addln(msg: String);
+begin
+  memo1.Lines.Add(msg);
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+begin
+  ClientSocket1.Socket.SendText(edit1.Text+#10);
+  adddebug(edit1.Text);
+  edit1.Text:='';
+end;
+
+procedure TForm1.Button2Click(Sender: TObject);
+var i:Integer;
+begin
+  for i:=2 to pagecontrol1.PageCount-1 do
+  begin
+    if AnsiEndsText('*',PageControl1.Pages[i].Caption) then
+    begin
+      if MessageDlg('Unsaved changed. Continue?',mtWarning,mbOkCancel,0)<>mrOK then exit;
+    end;
+  end;
+  if inputquery('Dump','Dump object id:',dumpobject) then
+  begin
+    while pageControl1.PageCount>2 do PageControl1.Pages[2].Free;
+    capture:=true;
+    captureList:='';
+    lastdata:=now;
+    Edit1.Text:='@dump '+dumpobject;
+    button1.Click;
+  end;
+end;
+
+procedure TForm1.btnVerbsClick(Sender: TObject);
+begin
+  if InputQuery('Verbs','Load Verb list for object:',dumpobject) then
+  begin
+    msgqueue.Add('@verbs '+dumpobject);
+    OnExamineLine:=DoCheckVerbs;
+  end;
+end;
+
+procedure TForm1.btnCompileClick(Sender: TObject);
+var cmd:String; e:TEdit;
+begin
+  cmd:=replacestr(CurrentEditor.Text,crlf,lf);
+  SendBulk(cmd);
+  OnExamineLine:=DoCheckCompile;
+  e:=CurrentTest;
+  if assigned(e) then
+  begin
+    ifile.WriteString('Test',TestName(PageControl1.ActivePage),e.Text);
+  end;
+end;
+
+procedure TForm1.Button4Click(Sender: TObject);
+var p:TPOINTL;
+begin
+  CurrentEditor.perform(EM_POSFROMCHAR,cardinal(@p),currenteditor.SelStart);
+  adddebug('POS: '+inttostr(p.x)+','+inttostr(p.y));
+end;
+
+procedure TForm1.CheckBox1Click(Sender: TObject);
+begin
+  ClientSocket1.Active:=CheckBox1.Checked;
+end;
+
+procedure TForm1.ClientSocket1Connect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+ addln('Connected');
+ if (connectcmd<>'') then
+ begin
+   msgqueue.Add(connectcmd);
+ end;
+end;
+
+procedure TForm1.ClientSocket1Disconnect(Sender: TObject;
+  Socket: TCustomWinSocket);
+begin
+  addln('Disconnected');
+  checkbox1.Checked:=false;
+end;
+
+procedure TForm1.ClientSocket1Read(Sender: TObject; Socket: TCustomWinSocket);
+var c:AnsiChar;
+begin
+//  addln(socket.ReceiveText);
+  for c in socket.ReceiveText do AddChar(Char(c));
+  flush;
+end;
+
+procedure TForm1.ClientSocket1Write(Sender: TObject; Socket: TCustomWinSocket);
+var sent:Integer;
+begin
+  if (sendbuffer<>'') then
+  begin
+    sent:=ClientSocket1.Socket.SendText(sendbuffer);
+    if (sent>0) then delete(sendbuffer,1,sent);
+  end;
+end;
+
+procedure TForm1.Flush;
+begin
+  if currentText<>'' then
+  begin
+    memo1.SelStart:=length(memo1.Text);
+    memo1.SelAttributes.Color:=myfontcolor;
+    memo1.SelAttributes.Style:=myfontstyle;
+    memo1.SelAttributes.Name:='Courier';
+    memo1.seltext:=currenttext;
+    SetBackColor(memo1,mycolor);
+    currenttext:='';
+    SendMessage(memo1.handle, WM_VSCROLL, SB_BOTTOM, 0);
+  end;
+end;
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  ifile:=TInifile.Create(ExtractFilePath(paramstr(0))+'\mush.ini');
+  escparams:=TStringList.Create;
+  mycolor:=clBlack;
+  myfontStyle:=[];
+  myfontcolor:=clwhite;
+  connectcmd:='connect robbie SRTDumpling';
+  msgqueue:=TStringList.Create;
+  checkbox1.Checked:=ClientSocket1.Active;
+  dumpobject:=ifile.ReadString('Settings','LastDump','');
+  verblist:=TStringList.Create;
+  verblist.Sorted:=true;
+  verblist.Duplicates:=dupIgnore;
+  namelist:=TStringList.Create;
+end;
+
+procedure TForm1.FormDestroy(Sender: TObject);
+begin
+  ifile.WriteString('Settings','LastDump',dumpobject);
+  freeandnil(ifile);
+  freeandnil(msgqueue);
+  freeandnil(verblist);
+  freeandnil(namelist);
+end;
+
+function TForm1.GetLineNo: Integer;
+var  e:TRichEdit;
+begin
+  result:=0;
+  e:=currenteditor;
+  if assigned(e) then result:=e.Perform(EM_LINEFROMCHAR, e.SelStart, 0);
+end;
+
+procedure TForm1.GotoLine1Click(Sender: TObject);
+var s:String;
+begin
+  s:=inttostr(lineno);
+  if inputquery('Goto Line','Line no:',s) then
+  begin
+    LineNo:=atol(s);
+  end;
+end;
+
+procedure TForm1.Memo1Change(Sender: TObject);
+begin
+  SetChanged(sender,true);
+  if sender=CurrentEditor then
+  begin
+    synline:=min(lineno,synline);
+    SynWait:=now;
+  end;
+end;
+
+procedure Tform1.SetChanged(sender:TObject; value:Boolean);
+var re:TRichEdit; tb:TTabsheet; s:String;
+begin
+  if not(sender is TRichedit) then exit;
+  re:=sender as TRichEdit;
+  if re=memo1 then exit;
+  re.Modified:=value;
+  tb:=re.Parent as TTabsheet;
+  s:=tb.Caption;
+  if (s.EndsWith('*')) then delete(s,length(s),1);
+  if value then s:=s+'*';
+  tb.Caption:=s;
+end;
+
+procedure TForm1.SetLineNo(const Value: Integer);
+var x:Integer; e:TRichEdit;
+begin
+  e:=CurrentEditor;
+  x:=e.Perform(EM_LINEINDEX,value,0);
+  e.SelStart:=x;
+end;
+
+procedure TForm1.Memo1SelectionChange(Sender: TObject);
+var e:TRichEdit; lno:Integer;
+begin
+  e:=sender as TRichEdit;
+  StatusBar1.Panels[1].Text:=inttostr(LineNo);
+end;
+
+procedure TForm1.Memo2DblClick(Sender: TObject);
+var lno:Integer; line:String; obj,verb:String;
+begin
+//  ... called from #540:stacker (this == #540), line 2
+  lno:=memo2.Perform(EM_LINEFROMCHAR, memo2.SelStart, 0);
+  line:=memo2.Lines[lno];
+  if trim(line).StartsWith('... called from') then
+  begin
+    delete(line,1,pos('#',line)-1);
+    obj:=parsesepfield(line,':');
+    verb:=parse(line);
+    ParseSepfield(line,',');
+    Parse(line);
+    lno:=atol(line);
+    FindVerb(obj,verb,lno);
+  end;
+end;
+
+procedure TForm1.NewTab1Click(Sender: TObject);
+var t:TStringList;
+begin
+  t:=TStringList.Create;
+  t.Text:=clipboard.AsText;
+  if (t.count<1) or not(t[0].StartsWith('@program')) then
+  begin
+    ShowMessage('You must select the entire verb, beginning with @program');
+    exit;
+  end;
+  ProcessVerb(t);
+end;
+
+function TForm1.StripAnsi(s: String): String;
+var esc:Boolean; ancode:Boolean; c:Char;
+begin
+  result:='';
+  esc:=false; ancode:=false;
+  for c in s do
+  begin
+    if (c=#27) then esc:=true
+    else if esc then
+    begin
+      if ancode then
+      begin
+        if c in ['A'..'Z','a'..'z'] then
+        begin
+          ancode:=false;
+          esc:=false;
+        end;
+      end
+      else if (c='[') then ancode:=true
+      else esc:=false;
+    end
+    else result:=result+c;
+  end;
+end;
+
+function TForm1.TestName(tb: TTabsheet): String;
+var s:String;
+begin
+  s:=tb.Caption;
+  s:=replacestr(s,'*','');
+  s:=replacestr(s,'=','_');
+  result:=s;
+end;
+
+procedure TForm1.tmrQueueTimer(Sender: TObject);
+var cmd:String;
+begin
+  if (msgqueue.Count>0) then
+  begin
+    cmd:=msgqueue[0];
+    msgqueue.Delete(0);
+    edit1.Text:=cmd;
+    button1.Click;
+    lastdata:=now;
+  end;
+  if capture and (SecondsBetween(now,lastdata)>=2) then
+  begin
+    ProcessDump;
+  end;
+  if (assigned(whenfinished)) and (SecondsBetween(now,lastdata)>=2) then
+  begin
+    whenfinished();
+    whenfinished:=nil;
+  end;
+end;
+
+function TForm1.CurrentEditor:TRichEdit;
+var c:TControl; tb:TTabSheet; i:Integer;
+begin
+  tb:=PageControl1.ActivePage;
+  for i:=0 to tb.ControlCount-1 do
+  begin
+    c:=tb.Controls[i];
+    if (c is TRichEdit) then
+    begin
+      exit(c as TRichEdit);
+      break;
+    end;
+  end;
+  result:=nil;
+end;
+
+procedure TForm1.Find1Click(Sender: TObject);
+begin
+  if inputquery('Find','Search',findstr) then DoFind;
+end;
+
+procedure TForm1.FindAgain1Click(Sender: TObject);
+begin
+  if findstr<>'' then DoFind;
+end;
+
+procedure TForm1.DoFind;
+var tmp:String; ix,loc:Integer;
+begin
+  tmp:=lowercase(replacestr(CurrentEditor.Text,crlf,lf));
+  ix:=currentEditor.SelStart+length(findstr)-1;
+  loc:=posex(lowercase(findstr),tmp,ix);
+  if (loc<1) then loc:=posex(lowercase(findstr),tmp);
+  if (loc<1) then
+  begin
+    MessageDlg('Not found.',mtWarning,[mbCancel],0);
+    exit;
+  end;
+  Currenteditor.SelStart:=loc-1;
+  CurrentEditor.SelLength:=length(findstr);
+end;
+
+procedure TForm1.DoKeyPress(sender: TObject; var key: Char);
+var indent:Integer; s:String; re:TRichEdit; n:Integer;
+begin
+  if (key=cr) then
+  begin
+    re:=CurrentEditor;
+    s:=re.Lines[LineNo-1];
+    indent:=1;
+    while (indent<=length(s)) and (s[indent]=' ') do inc(indent);
+    if (indent>1) then
+    begin
+      re.SelText:=StringOfChar(' ',indent-1);
+//      re.SelStart:=re.selstart+indent-2;
+      key:=#0;
+    end;
+  end;
+end;
+
+procedure TForm1.DoReplace;
+var tmp,orig:String; ix,loc,savestart:Integer; t:TStringList; header:String; flags:TReplaceFlags;
+begin
+  if findstr='' then exit;
+  t:=TStringList.Create;
+  header:='';
+  orig:=ReplaceStr(CurrentEditor.Text,crlf,lf);
+  savestart:=CurrentEditor.SelStart;
+  try
+    if useselection then t.text:=CurrentEditor.SelText
+    else
+    begin
+      if replAll then
+      begin
+        t.text:=CurrentEditor.Text;
+        if (t.Count>0) then
+        begin
+          header:=t[0];
+          t.Delete(0);
+        end;
+      end
+      else
+      begin
+        tmp:=replacestr(currenteditor.Text,crlf,lf);
+        t.text:=copy(tmp,CurrentEditor.SelStart,length(tmp));
+      end;
+    end;
+    tmp:=replacestr(t.text,crlf,lf);
+    flags:=[];
+    if not(findcase) then flags:=flags+[rfIgnoreCase];
+    if replall then flags:=flags+[rfReplaceAll];
+    tmp:=StringReplace(tmp,findstr,replstr,flags);
+    if useselection then CurrentEditor.SelText:=tmp
+    else
+    begin
+      if replall then
+      begin
+        if header<>'' then tmp:=header+lf+tmp;
+      end
+      else tmp:=copy(orig,1,currenteditor.SelStart)+tmp;
+      Currenteditor.Text:=tmp;
+      CurrentEditor.SelStart:=savestart;
+    end;
+    SynLine:=0;
+  finally
+    t.Free;
+  end;
+end;
+
+
+function TForm1.FindByType(aparent:TWinControl; t:String):TControl;
+var c:TControl; i:Integer; w:TWincontrol;
+begin
+  for i:=0 to aparent.ControlCount-1 do
+  begin
+    c:=aparent.Controls[i];
+    if AnsiSameText(c.ClassName,t) then
+    begin
+      exit(c);
+    end;
+    if (c is TWinControl) then
+    begin
+      w:=c as TWinControl;
+      if w.ControlCount>0 then
+      begin
+        result:=FindByType(w,t);
+        if result<>nil then exit;
+      end;
+    end;
+  end;
+  result:=nil;
+end;
+
+procedure TForm1.FindTab1Click(Sender: TObject);
+begin
+  if InputQuery('Verb','Enter verb',lastverb) then
+  begin
+    if SelectError('',lastverb,0) then pagecontrol1.ActivePage.PageIndex:=2;
+  end;
+end;
+
+function TForm1.CurrentTest: TEdit;
+var c:TControl; tb:TTabSheet; i:Integer;
+begin
+  tb:=PageControl1.ActivePage;
+  result:=FindByType(tb,'TEdit') as TEdit;
+end;
+
+procedure TForm1.DoCheckCompile(sender: TObject; line: String);
+var lno,x,n:Integer; s1,s2:String;  e:TEdit;
+begin
+  adddebug(line);
+  if (line.StartsWith('Line ')) then
+  begin
+    s1:=parseSepField(line,':');
+    lno:=atol(copy(s1,5,255));
+    x:=CurrentEditor.Perform(EM_LINEINDEX,lno,0);
+    n:=length(currenteditor.Lines[lno]);
+    CurrentEditor.SelStart:=x;
+    CurrentEditor.SelLength:=n;
+    CurrentEditor.SetFocus;
+//e 5:  syntax error
+//1 error(s).
+//Verb not programmed.
+    adddebug('Error found: '+line);
+  end
+  else if line='Verb not programmed.' then
+  begin
+    OnExamineLine:=nil;
+  end
+  else if line='Verb programmed.' then
+  begin
+    adddebug('Compiled OK.');
+    OnExamineLine:=nil;
+    SetChanged(CurrentEditor,false);
+    e:=CurrentTest;
+    if assigned(e) and (trim(e.Text)<>'') then
+    begin
+      msgqueue.add(e.Text);
+      testtab:=PageControl1.ActivePage;
+      onExamineLine:=DoChecktest;
+      getstack:=false;
+      PageControl1.ActivePage:=tbMain;
+    end;
+  end;
+end;
+
+procedure TForm1.DoCheckTest(sender: TObject; line: String);
+var id,verb,lno,error:String; i:Integer; re:TRichEdit;
+begin
+  if (getstack) then adddebug(line);
+  //#540:test (this == #540), line 5:  Type mismatch (expected integer; got float)
+  //#151:+attacks, line 9:  Verb not found: #548:energy_cast()
+
+  if line.StartsWith('#') and line.Contains(', line') then
+  begin
+    adddebug(line);
+    id:=ParseSepField(line,':');
+    if line.contains('(this ==') then
+    begin
+      verb:=Parse(line);
+      ParseSepField(line,',');
+      Parse(line);
+    end
+    else
+    begin
+      verb:=ParseSepField(line,',');
+      Parse(line);
+    end;
+    lno:=ParseSepField(line,':');
+    error:=line;
+    getstack:=true;
+    errorverb:='';
+    if not SelectError(id,verb,atol(lno)) then
+    begin
+      errorverb:=verb;
+      errorobj:=id;
+      lastlno:=atol(lno);
+    end;
+  end
+  else if (line='(End of traceback)') then
+  begin
+    getstack:=false;
+    if errorverb<>'' then FindVerb(errorobj,errorverb,lastlno);
+    errorverb:='';
+  end;
+end;
+
+function TForm1.parseVerb(value:String; var obj,verb:String):Boolean;
+var i:Integer;
+begin
+  if value.StartsWith('@') then parse(value);
+  obj:=parseSepFIeld(value,':');
+  verb:=parse(value);
+  if (verb.StartsWith('"')) then verb:=GetSepField(verb,2,'"');
+  i:=pos('*',verb);
+  if (i>0) then verb:=copy(verb,1,i-1);
+  result:=(verb<>'') and (obj<>'');
+end;
+
+procedure TForm1.DoCheckVerb(sender: TObject; line: String);
+var t:TStringList; s,obj,verb:String; i:Integer;
+begin
+  if (line.Contains('***finished***')) then
+  begin
+    OnExamineLine:=nil;
+    t:=TStringList.Create;
+    try
+      t.Text:=verbcollect;
+      t.Add('.');
+      s:=t[0];
+      if (s='That object does not define that verb.') then
+      begin
+        showmessage('Verb not found.');
+        exit;
+      end;
+
+      obj:=parsesepfield(s,':');
+      verb:=parse(s);
+      if (verb.StartsWith('"')) then verb:=GetSepField(verb,2,'"');
+      i:=pos('*',verb);
+      if (i>0) then verb:=copy(verb,1,i-1);
+      t[0]:='@program '+obj+':'+verb;
+      if SelectError(obj,verb,lastlno) then
+      begin
+        CurrentEditor.lines.assign(t);
+        synline:=0;
+      end
+      else
+      begin
+        PageControl1.ActivePage:=AddTab(obj+':'+verb,t.Text,1);
+        synline:=0;
+        SelectError(obj,verb,lastlno);
+      end;
+      lastlno:=0;
+      CheckName(obj);
+      UpdateVerbs;
+    finally
+      freeandnil(t);
+    end;
+  end
+  else verbcollect:=verbcollect+line+crlf;
+end;
+
+procedure TForm1.DoCheckVerbs(sender: TObject; line: String);
+var t:TStringList; obj,verb:String; s,s1:String; i:Integer;
+begin
+  OnExamineLine:=DoCheckTest;
+  if not(line.StartsWith(';verb',true)) then
+  begin
+    MessageDlg('Verb not found.'+crlf+line,mtError,[mbCancel],0);
+    exit;
+  end;
+  t:=TStringList.Create;
+  parsesepfield(line,'(');
+  obj:=parseSepField(line,')');
+  parseSepField(line,'{');
+  line:=trim(line);
+  if AnsiEndsText('}',line) then delete(line,length(line),1);
+  for i:=verblist.Count-1 downto 0 do
+  begin
+    if verblist[i].StartsWith(obj+':') then verblist.Delete(i);
+  end;
+  Explode(line,',',t);
+  for s1 in t do
+  begin
+    s:=s1;
+    delete(s,1,1);
+    delete(s,length(s),1);
+    verb:=GetField(s,1);
+    VerbList.Add(obj+':'+verb);
+  end;
+  CheckName(obj);
+  UpdateVerbs;
+end;
+
+procedure TForm1.FitListContents(alistview: TListView);
+var
+  w: Array of Integer;
+  i, j, n: Integer;
+  nd: TListItem;
+  cnv: TCanvas;
+  s: String;
+begin
+  if alistview.viewstyle <> vsReport then
+    exit;
+  if alistview.columns.Count < 1 then
+    exit;
+  if alistview.Items.Count < 1 then
+    exit;
+  alistview.Items.BeginUpdate;
+  try
+    setlength(w, alistview.columns.Count);
+    for i := low(w) to high(w) do
+      w[i] := 0;
+    cnv := alistview.canvas;
+    cnv.font.assign(alistview.font);
+    if alistview.ShowColumnHeaders then
+    begin
+      for i := 0 to alistview.columns.Count - 1 do
+      begin
+        w[i] := cnv.TextWidth(alistview.columns[i].Caption);
+      end;
+    end;
+    for j := 0 to alistview.Items.Count - 1 do
+    begin
+      nd := alistview.Items[j];
+      n := min( high(w), nd.subitems.Count);
+      for i := 0 to n do
+      begin
+        if i = 0 then
+          s := nd.Caption
+        else
+          s := nd.subitems[i - 1];
+        w[i] := max(w[i], cnv.TextWidth(s));
+      end;
+    end;
+    if (alistview.CheckBoxes) then
+      w[0] := w[0] + 24;
+    for i := low(w) to high(w) do
+    begin
+      alistview.columns[i].width := w[i] + cnv.TextWidth('    ');
+    end;
+  finally
+    alistview.Items.EndUpdate;
+  end;
+end;
+
+procedure TForm1.CheckName(obj:String);
+begin
+  if namelist.IndexOfName(obj)<0 then
+  begin
+    msgqueue.Add(';'+obj+'.name');
+    OnExamineLine:=DoCheckName;
+  end;
+  lastobj:=obj;
+end;
+
+procedure TForm1.DoCheckName(sender: TObject; line: String);
+var aname:String;
+begin
+  if AnsiContainsText(line,'***finished***') then exit; // Ignore trailing stuff.
+  OnExamineLine:=DoCheckTest;
+  if not(line.StartsWith('=>')) then
+  begin
+    adddebug('Name not found.');
+    exit;
+  end;
+  aname:=GetSepfield(line,2,'"');
+  namelist.values[lastobj]:=aname;
+  UpdateVerbs;
+end;
+
+procedure TForm1.UpdateVerbs;
+var nd:TListItem; s:String; obj,verb:String;
+begin
+  lvVerbs.Items.BeginUpdate;
+  try
+    lvVerbs.Items.Clear;
+    for s in verblist do
+    begin
+      nd:=lvVerbs.Items.Add;
+      obj:=GetSepField(s,1,':');
+      verb:=GetSepField(s,2,':');
+      nd.Caption:=obj;
+      nd.SubItems.Add(namelist.Values[obj]); // Name
+      nd.SubItems.Add(verb);
+      nd.SubItems.Add(FindVerbHelp(obj,verb));
+    end;
+    FitListContents(lvVerbs);
+  finally
+    lvVerbs.Items.EndUpdate;
+  end;
+end;
+
+function TForm1.FindVerbHelp(obj,verb:String):String;
+var re:TRichEdit; s:String;
+begin
+  re:=FindVerbEditor(obj,verb);
+  result:='No Help';
+  if assigned(re) and (re.Lines.Count>=2) then
+  begin
+    s:=re.Lines[1];
+    if (s.StartsWith('"')) then
+    begin
+      delete(s,1,1);
+      delete(s,length(s)-1,2);
+      result:=s;
+    end;
+  end;
+end;
+
+function TForm1.FindVerbEditor(obj,verb:String):TRichEdit;
+var i:Integer; re:TRichEdit; tb:TTabSheet; s:String;
+begin
+  for i:=1 to pagecontrol1.PageCount-1 do
+  begin
+    tb:=pagecontrol1.Pages[i];
+    if tb.Tag<1 then continue;
+    re:=FindByType(pagecontrol1.Pages[i],'TRichEdit') as TRichEdit;
+    if re<>nil then
+    begin
+      if re.Lines.Count>1 then
+      begin
+        s:=re.lines[0];
+        if AnsiSameText(trim(s),'@program '+obj+':'+verb) then
+        begin
+          exit(re);
+        end;
+      end;
+    end;
+  end;
+  result:=nil;
+end;
+
+procedure TForm1.PageControl1Change(Sender: TObject);
+begin
+  if CurrentEditor<>nil then Memo1SelectionChange(currentEditor);
+  actCompile.Enabled:=PageControl1.ActivePage.Tag>=1;
+  synline:=0;
+end;
+
+procedure TForm1.ProcessDump;
+var t,t1:TStringList; s:String; cap:Boolean; prog,obj:String;
+begin
+  addln('Capture complete.');
+  capture:=false;
+  AddTab('Dump',capturelist,0);
+  t:=TStringList.Create;
+  t1:=TStringList.Create;
+  t.Text:=capturelist;
+  cap:=false;
+  for s in t do
+  begin
+    if not(cap) and AnsiStartsText('@program',s) then
+    begin
+      t1.Clear;
+      cap:=true;
+      prog:=s;
+    end;
+    if (cap) then
+    begin
+      t1.Add(s);
+      if (s='.') then
+      begin
+        cap:=false;
+        ProcessVerb(t1);
+      end;
+    end;
+  end;
+  freeandnil(t);
+  freeandnil(t1);
+  PageControl1Change(self);
+  SetChanged(memo1,false);
+  s:=prog;
+  Parse(s);
+  obj:=ParseSepField(s,':');
+  CheckName(obj);
+  UpdateVerbs;
+end;
+
+procedure TForm1.ProcessVerb(t:TStrings);
+var prog,obj,verb:String; s:String;
+begin
+  prog:=t[0];
+  AddTab(GetSepField(prog,2,':'),t.text,1);
+  s:=prog;
+  parse(s);
+  obj:=parsesepfield(s,':');
+  verb:=parse(s);
+  verblist.Add(obj+':'+verb);
+end;
+
+function TForm1.AddTab(caption,txt:String; iscode:Integer):TTabsheet;
+var tb:TTabsheet; edit:TRichEdit; pn:TPanel; ed:TEdit; lb:TLabel;
+begin
+  tb:=TTabSheet.Create(self);
+  tb.Tag:=iscode;
+  tb.PageControl:=PageControl1;
+  tb.Caption:=caption;
+  edit:=TRichEdit.Create(tb);
+  edit.Parent:=tb;
+  edit.Align:=alClient;
+  edit.Text:='';
+  edit.Perform(EM_SETTEXTMODE,TM_MULTILEVELUNDO or TM_RICHTEXT,0);
+//  adddebug('Undo='+inttostr(edit.Perform(EM_SETUNDOLIMIT,20,0)));
+  edit.Text:=txt;
+  edit.Font.Assign(memo1.font);
+  edit.color:=memo1.color;
+  tb.TabVisible:=true;
+  edit.ScrollBars:=ssBoth;
+  edit.OnSelectionChange:=Memo1SelectionChange;
+  edit.OnKeyPress:=DoKeyPress;
+  edit.HideSelection:=false;
+  edit.OnChange:=Memo1Change;
+  SetChanged(edit,false);
+  if iscode>=1 then
+  begin
+    pn:=TPanel.Create(tb);
+    pn.Parent:=tb;
+    pn.Caption:='';
+    pn.Align:=alBottom;
+    lb:=TLabel.Create(tb);
+    lb.Parent:=pn;
+    lb.Caption:='Test: ';
+    lb.Align:=alLeft;
+    ed:=TEdit.Create(tb);
+    ed.Parent:=pn;
+    ed.Text:=ifile.ReadString('Test',TestName(tb),'');
+    pn.ClientHeight:=ed.Height;
+    ed.Align:=alClient;
+  end;
+  exit(tb);
+end;
+
+procedure TForm1.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
+var re:TRichEdit;
+begin
+  re:=CurrentEditor;
+  if (re=nil) then exit;
+  if (re.Parent.Tag<1) then exit;
+  if SynLine>=re.Lines.Count then exit;
+  done:=false;
+  if (SecondsBetween(now,synwait)<1) then exit;
+  SyntaxHighlight(re,Synline);
+  inc(synline);
+end;
+
+procedure TForm1.SyntaxHighlight(re:TRichEdit; lno:Integer);
+var isquote,isescaped:Boolean; c:Char; line:String; startx,x:Integer; myword:String;
+     color:TCOlor; wordonly:Boolean;  isverb,isproperty:Boolean; nextcolor:TColor;
+     saveline,savestart,savelen:Integer;
+
+  function NextWord:String;
+  begin
+    result:='';
+    while x<=length(line) do
+    begin
+      c:=line[x];
+      if pos(c,' "()[]+-/\*:.{}')>0 then
+      begin
+        if result='' then
+        begin
+          result:=c;
+          inc(x);
+        end;
+        exit;
+      end;
+      result:=result+c;
+      inc(x);
+    end;
+  end;
+
+begin
+  if (lno>=re.lines.count) or (lno<0) then exit;
+  re.Lines.BeginUpdate;
+  try
+    re.OnSelectionChange:=nil;
+    re.OnChange:=nil;
+    line:=re.Lines[lno];
+    isquote:=false;
+    isescaped:=false;
+    isverb:=false;
+    isproperty:=true;
+    wordonly:=false;
+    x:=1;
+    color:=clWhite;
+    nextcolor:=clWhite;
+    savestart:=re.SelStart;
+    savelen:=re.SelLength;
+    saveline:=re.perform( EM_GETFIRSTVISIBLELINE, 0, 0 );
+    while (x<length(line)) do
+    begin
+      startx:=x;
+      myword:=nextword;
+      if (isEscaped) then
+      begin
+        isEscaped:=false;
+      end
+      else if isquote then
+      begin
+        color:=clYellow;
+        if myword='\' then
+        begin
+          isEscaped:=true;
+          color:=clWebOrange;
+        end
+        else if myword='"' then
+        begin
+          isQuote:=false;
+          wordonly:=true;
+        end;
+      end
+      else if (myword='"') then
+      begin
+        isQuote:=true;
+        color:=clYellow;
+      end
+      else
+      begin
+        if myword=':' then nextcolor:=clwebMagenta
+        else if myword='.' then nextColor:=clwebLawnGreen
+        else if (nextcolor<>clWhite) then
+        begin
+          color:=nextcolor;
+          nextcolor:=clWhite;
+          wordonly:=true;
+        end
+        else if IsInList(myword,keywords) then begin color:=clWebCyan; wordonly:=true; end;
+      end;
+      SetSynColor(re,color,lno,startx,x-startx);
+      if wordonly then color:=clWhite;
+      wordonly:=false;
+    end;
+    re.SelStart:=savestart;
+    re.SelLength:=savelen;
+
+    re.Perform(EM_LINESCROLL,0,saveline-re.perform( EM_GETFIRSTVISIBLELINE, 0, 0 ));
+  finally
+    re.Lines.EndUpdate;
+    re.OnSelectionChange:=Memo1SelectionChange;
+    re.OnChange:=Memo1Change;
+  end;
+end;
+
+procedure TForm1.SetSynColor(re:TRichEdit; color:TColor; lno,x,len:Integer);
+var format:TCharFormat2;
+begin
+  re.SelStart:=re.Perform(EM_LINEINDEX,lno,0)+(x-1);
+  re.SelLength:=len;
+  re.SelAttributes.Color:=color;
+end;
+
+end.
