@@ -2,7 +2,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   Left = 0
   Top = 0
   Caption = 'MooCoder'
-  ClientHeight = 674
+  ClientHeight = 654
   ClientWidth = 943
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   TextHeight = 16
   object Panel1: TPanel
     Left = 0
-    Top = 568
+    Top = 548
     Width = 943
     Height = 87
     Align = alBottom
@@ -49,23 +49,24 @@ object frmMoocoderMain: TfrmMoocoderMain
       TabOrder = 1
       OnClick = Button1Click
     end
-    object CheckBox1: TCheckBox
+    object ckConnect: TCheckBox
       Left = 8
       Top = 45
       Width = 97
       Height = 17
       Caption = 'Connect'
       TabOrder = 2
-      OnClick = CheckBox1Click
+      OnClick = ckConnectClick
     end
-    object Button2: TButton
+    object btnDump: TButton
       Left = 104
       Top = 45
       Width = 75
       Height = 25
-      Caption = 'Dump'
+      Action = actDump
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 3
-      OnClick = Button2Click
     end
     object btnCompile: TButton
       Left = 185
@@ -88,7 +89,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object Memo2: TMemo
     Left = 0
-    Top = 479
+    Top = 459
     Width = 943
     Height = 89
     Align = alBottom
@@ -107,7 +108,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Left = 0
     Top = 0
     Width = 943
-    Height = 479
+    Height = 459
     ActivePage = tbVerbs
     Align = alClient
     MultiLine = True
@@ -125,7 +126,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 448
+        Height = 428
         Align = alClient
         Color = clBlack
         Font.Charset = ANSI_CHARSET
@@ -151,7 +152,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 448
+        Height = 428
         Align = alClient
         Columns = <
           item
@@ -171,13 +172,12 @@ object frmMoocoderMain: TfrmMoocoderMain
         TabOrder = 0
         ViewStyle = vsReport
         OnDblClick = lvVerbsDblClick
-        ExplicitTop = -2
       end
     end
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 655
+    Top = 635
     Width = 943
     Height = 19
     Panels = <
@@ -264,6 +264,9 @@ object frmMoocoderMain: TfrmMoocoderMain
       object NewVerb1: TMenuItem
         Action = actNewVerb
       end
+      object Dump1: TMenuItem
+        Action = actDump
+      end
     end
     object Settings1: TMenuItem
       Caption = '&Settings'
@@ -291,6 +294,12 @@ object frmMoocoderMain: TfrmMoocoderMain
     object actNewVerb: TAction
       Caption = 'New Verb'
       OnExecute = actNewVerbExecute
+    end
+    object actDump: TAction
+      Caption = 'Dump'
+      Hint = 'Grab the output of a dump.'
+      ShortCut = 24644
+      OnExecute = btnDumpClick
     end
   end
 end

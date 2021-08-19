@@ -18,13 +18,13 @@ type
     Edit1: TEdit;
     Button1: TButton;
     client: TClientSocket;
-    CheckBox1: TCheckBox;
+    ckConnect: TCheckBox;
     Memo2: TMemo;
     tmrQueue: TTimer;
     pages: TPageControl;
     tbMain: TTabSheet;
     Memo1: TRichEdit;
-    Button2: TButton;
+    btnDump: TButton;
     StatusBar1: TStatusBar;
     btnCompile: TButton;
     PopupMenu1: TPopupMenu;
@@ -50,16 +50,18 @@ type
     NewVerb1: TMenuItem;
     Settings1: TMenuItem;
     Connection1: TMenuItem;
+    actDump: TAction;
+    Dump1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
     procedure clientRead(Sender: TObject; Socket: TCustomWinSocket);
     procedure Button1Click(Sender: TObject);
-    procedure CheckBox1Click(Sender: TObject);
+    procedure ckConnectClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure tmrQueueTimer(Sender: TObject);
-    procedure Button2Click(Sender: TObject);
+    procedure btnDumpClick(Sender: TObject);
     procedure Memo1SelectionChange(Sender: TObject);
     procedure pagesChange(Sender: TObject);
     procedure btnCompileClick(Sender: TObject);
@@ -223,6 +225,7 @@ end;
 procedure TfrmMoocoderMain.FindVerb(obj,verb:String; lno:Integer);
 begin
   lastlno:=lno;
+  if (obj='#-1') then exit; // Not a real verb.
   if not(SelectError(obj,verb,lno)) then FetchVerb(obj,verb);
 end;
 
@@ -477,7 +480,7 @@ begin
   edit1.Text:='';
 end;
 
-procedure TfrmMoocoderMain.Button2Click(Sender: TObject);
+procedure TfrmMoocoderMain.btnDumpClick(Sender: TObject);
 var i:Integer;
 begin
   for i:=2 to pages.PageCount-1 do
@@ -527,15 +530,16 @@ begin
   adddebug('POS: '+inttostr(p.x)+','+inttostr(p.y));
 end;
 
-procedure TfrmMoocoderMain.CheckBox1Click(Sender: TObject);
+procedure TfrmMoocoderMain.ckConnectClick(Sender: TObject);
 begin
-  client.Active:=CheckBox1.Checked;
+  client.Active:=ckConnect.Checked;
 end;
 
 procedure TfrmMoocoderMain.clientConnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
  addln('Connected');
+ ckConnect.Checked:=true;
  if (connectcmd<>'') then
  begin
    msgqueue.Add(connectcmd);
@@ -546,7 +550,7 @@ procedure TfrmMoocoderMain.clientDisconnect(Sender: TObject;
   Socket: TCustomWinSocket);
 begin
   addln('Disconnected');
-  checkbox1.Checked:=false;
+  ckConnect.Checked:=false;
 end;
 
 procedure TfrmMoocoderMain.clientRead(Sender: TObject; Socket: TCustomWinSocket);
@@ -590,7 +594,7 @@ begin
   myfontStyle:=[];
   myfontcolor:=clwhite;
   msgqueue:=TStringList.Create;
-  checkbox1.Checked:=client.Active;
+  ckConnect.Checked:=client.Active;
   dumpobject:=ifile.ReadString('Settings','LastDump','');
   verblist:=TStringList.Create;
   verblist.Sorted:=true;
@@ -667,7 +671,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.Memo2DblClick(Sender: TObject);
-var lno:Integer; line:String; obj,verb:String;
+var lno:Integer; line:String; prog,obj,verb:String;
 begin
 //  ... called from #540:stacker (this == #540), line 2
   lno:=memo2.Perform(EM_LINEFROMCHAR, memo2.SelStart, 0);
@@ -675,12 +679,13 @@ begin
   if trim(line).StartsWith('... called from') then
   begin
     delete(line,1,pos('#',line)-1);
-    obj:=parsesepfield(line,':');
-    verb:=parse(line);
-    ParseSepfield(line,',');
+    prog:=ParseSepField(line,',');
     Parse(line);
     lno:=atol(line);
-    FindVerb(obj,verb,lno);
+    if ParseVerb(prog,obj,verb) then
+    begin
+      FindVerb(obj,verb,lno);
+    end;
   end;
 end;
 
@@ -947,35 +952,26 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoCheckTest(sender: TObject; line: String);
-var id,verb,lno,error:String; i:Integer; re:TRichEdit;
+var obj,prog,verb,lno,error:String; i:Integer; re:TRichEdit;
 begin
   if (getstack) then adddebug(line);
   //#540:test (this == #540), line 5:  Type mismatch (expected integer; got float)
   //#151:+attacks, line 9:  Verb not found: #548:energy_cast()
-
+  //#151:+deploy deploy, line 28:  Range error
   if line.StartsWith('#') and line.Contains(', line') then
   begin
     adddebug(line);
-    id:=ParseSepField(line,':');
-    if line.contains('(this ==') then
-    begin
-      verb:=Parse(line);
-      ParseSepField(line,',');
-      Parse(line);
-    end
-    else
-    begin
-      verb:=ParseSepField(line,',');
-      Parse(line);
-    end;
+    prog:=ParseSepField(line,',');
+    Parse(line); // Skip "line"
     lno:=ParseSepField(line,':');
+    parseVerb(prog,obj,verb);     //Should strip out trailing defs.
     error:=line;
     getstack:=true;
     errorverb:='';
-    if not SelectError(id,verb,atol(lno)) then
+    if not SelectError(obj,verb,atol(lno)) then
     begin
       errorverb:=verb;
-      errorobj:=id;
+      errorobj:=obj;
       lastlno:=atol(lno);
     end;
   end
