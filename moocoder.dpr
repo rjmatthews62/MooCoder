@@ -7,7 +7,8 @@ uses
   moocodermain in 'moocodermain.pas' {frmMoocoderMain},
   wgplib in 'wgplib.pas',
   moocoderReplace in 'moocoderReplace.pas' {frmReplace},
-  moocoderUtils in 'moocoderUtils.pas';
+  moocoderUtils in 'moocoderUtils.pas',
+  SynHighlighterMooCode in 'SynHighlighterMooCode.pas';
 
 {$R *.res}
 

@@ -2,7 +2,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   Left = 0
   Top = 0
   Caption = 'MooCoder'
-  ClientHeight = 654
+  ClientHeight = 634
   ClientWidth = 943
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   TextHeight = 16
   object Panel1: TPanel
     Left = 0
-    Top = 548
+    Top = 528
     Width = 943
     Height = 87
     Align = alBottom
@@ -89,7 +89,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object Memo2: TMemo
     Left = 0
-    Top = 459
+    Top = 439
     Width = 943
     Height = 89
     Align = alBottom
@@ -108,7 +108,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Left = 0
     Top = 0
     Width = 943
-    Height = 459
+    Height = 439
     ActivePage = tbVerbs
     Align = alClient
     MultiLine = True
@@ -126,7 +126,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 428
+        Height = 408
         Align = alClient
         Color = clBlack
         Font.Charset = ANSI_CHARSET
@@ -152,7 +152,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 428
+        Height = 408
         Align = alClient
         Columns = <
           item
@@ -177,7 +177,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 635
+    Top = 615
     Width = 943
     Height = 19
     Panels = <
@@ -246,7 +246,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     end
   end
   object ApplicationEvents1: TApplicationEvents
-    OnIdle = ApplicationEvents1Idle
     Left = 716
     Top = 299
   end
@@ -301,5 +300,9 @@ object frmMoocoderMain: TfrmMoocoderMain
       ShortCut = 24644
       OnExecute = btnDumpClick
     end
+  end
+  object SynEditSearch1: TSynEditSearch
+    Left = 532
+    Top = 231
   end
 end

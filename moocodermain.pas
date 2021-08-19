@@ -6,8 +6,8 @@ uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, System.Win.ScktComp, Vcl.StdCtrls,inifiles,
   Vcl.ExtCtrls, Vcl.ComCtrls,WinAPI.RichEdit,DateUtils,StrUtils,wgplib,generics.collections,
-  Vcl.Menus, Vcl.AppEvnts,ClipBrd,Math,RegularExpressions,moocoderreplace,
-  System.Actions, Vcl.ActnList,MoocoderUtils;
+  Vcl.Menus, Vcl.AppEvnts,ClipBrd,Math,RegularExpressions,moocoderreplace,SynEdit,SynHighlighterMooCode,
+  System.Actions, Vcl.ActnList,MoocoderUtils,SynEditMiscClasses, SynEditSearch;
 
 type
   TxControl = class of TControl;
@@ -52,6 +52,7 @@ type
     Connection1: TMenuItem;
     actDump: TAction;
     Dump1: TMenuItem;
+    SynEditSearch1: TSynEditSearch;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -70,7 +71,6 @@ type
     procedure Memo1Change(Sender: TObject);
     procedure GotoLine1Click(Sender: TObject);
     procedure Memo2DblClick(Sender: TObject);
-    procedure ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
     procedure FindTab1Click(Sender: TObject);
     procedure NewTab1Click(Sender: TObject);
     procedure Refresh1Click(Sender: TObject);
@@ -92,12 +92,13 @@ type
     useselection:Boolean;
     replall:Boolean;
     findcase:Boolean;
+    moosyn:TSynMooCodeSyn;
     procedure ProcessEscape(cmd: String);
     procedure ResetStyle;
     procedure SetBackColor(re: TRichEdit; acolor: TColor);
     procedure ProcessDump;
     function AddTab(caption,txt:String; iscode:Integer): TTabsheet;
-    function CurrentEditor: TRichEdit;
+    function CurrentEditor: TSynEdit;
     function CurrentTest:TEdit;
     procedure SetChanged(sender: TObject; value: Boolean);
     function GetLineNo: Integer;
@@ -167,7 +168,6 @@ type
     procedure DoCheckVerb(sender:TObject; line:String);
     procedure DoCheckVerbs(sender:TObject; line:String);
     property LineNo:Integer read GetLineNo write SetLineNo;
-    procedure DoKeyPress(sender:TObject; var key:Char);
   end;
 
 var
@@ -230,11 +230,11 @@ begin
 end;
 
 function TfrmMoocoderMain.SelectError(obj, verb: String; lno: Integer):Boolean;
-var i:Integer; re:TRichEdit;
+var i:Integer; re:TSynEdit;
 begin
   for i:=2 to pages.PageCount-1 do
   begin
-    re:=FindByType(pages.Pages[i],'TRichEdit') as TRichEdit;
+    re:=FindByType(pages.Pages[i],'TSynEdit') as TSynEdit;
     if (re<>nil) and (re.Lines.Count>0) then
     begin
       if AnsiContainsText(re.Lines[0]+' ',obj+':'+verb+' ') then
@@ -255,7 +255,6 @@ procedure TfrmMoocoderMain.SendBulk(s: AnsiString);
 begin
   sendbuffer:=sendbuffer+s;
   clientWrite(self,client.Socket);
-  if sendbuffer='' then
 end;
 
 procedure TfrmMoocoderMain.SetBackColor(re:TRichEdit; acolor:TColor);
@@ -395,7 +394,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.Refresh1Click(Sender: TObject);
-var re:TRichEdit; obj,verb,s:String;
+var re:TSynEdit; obj,verb,s:String;
 begin
   re:=CurrentEditor;
   if (re=nil) or (re.Parent.Tag<1) then exit;
@@ -514,7 +513,7 @@ procedure TfrmMoocoderMain.btnCompileClick(Sender: TObject);
 var cmd:String; e:TEdit;
 begin
   cmd:=replacestr(CurrentEditor.Text,crlf,lf);
-  SendBulk(cmd);
+  SendBulk(cmd+lf);
   OnExamineLine:=DoCheckCompile;
   e:=CurrentTest;
   if assigned(e) then
@@ -602,6 +601,12 @@ begin
   namelist:=TStringList.Create;
   whenfinished:=procedure begin doConnection; end;
   pages.ActivePage:=tbMain;
+  moosyn:=TSynMooCodeSyn.Create(self);
+  moosyn.StringAttribute.Foreground:=clYellow;
+  moosyn.KeywordAttribute.Foreground:=clWebCyan;
+  moosyn.PreprocessorAttri.Foreground:=clWebSalmon;
+  moosyn.StringDelim:=sdDoubleQuote;
+  moosyn.DetectPreprocessor:=true;
 end;
 
 procedure TfrmMoocoderMain.FormDestroy(Sender: TObject);
@@ -614,11 +619,11 @@ begin
 end;
 
 function TfrmMoocoderMain.GetLineNo: Integer;
-var  e:TRichEdit;
+var  e:TSynEdit;
 begin
   result:=0;
   e:=currenteditor;
-  if assigned(e) then result:=e.Perform(EM_LINEFROMCHAR, e.SelStart, 0);
+  if assigned(e) then result:=e.CaretY-1;
 end;
 
 procedure TfrmMoocoderMain.GotoLine1Click(Sender: TObject);
@@ -656,17 +661,14 @@ begin
 end;
 
 procedure TfrmMoocoderMain.SetLineNo(const Value: Integer);
-var x:Integer; e:TRichEdit;
+var x:Integer; e:TSynEdit;
 begin
   e:=CurrentEditor;
-  x:=e.Perform(EM_LINEINDEX,value,0);
-  e.SelStart:=x;
+  e.CaretY:=value+1;
 end;
 
 procedure TfrmMoocoderMain.Memo1SelectionChange(Sender: TObject);
-var e:TRichEdit; lno:Integer;
 begin
-  e:=sender as TRichEdit;
   StatusBar1.Panels[1].Text:=inttostr(LineNo);
 end;
 
@@ -764,16 +766,16 @@ begin
   if EditSettings then Doconnection;
 end;
 
-function TfrmMoocoderMain.CurrentEditor:TRichEdit;
+function TfrmMoocoderMain.CurrentEditor:TSynEdit;
 var c:TControl; tb:TTabSheet; i:Integer;
 begin
   tb:=pages.ActivePage;
   for i:=0 to tb.ControlCount-1 do
   begin
     c:=tb.Controls[i];
-    if (c is TRichEdit) then
+    if (c is TSynEdit) then
     begin
-      exit(c as TRichEdit);
+      exit(c as TSynEdit);
       break;
     end;
   end;
@@ -791,36 +793,17 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoFind;
-var tmp:String; ix,loc:Integer;
+var ret:Integer;
 begin
-  tmp:=lowercase(replacestr(CurrentEditor.Text,crlf,lf));
-  ix:=currentEditor.SelStart+length(findstr)-1;
-  loc:=posex(lowercase(findstr),tmp,ix);
-  if (loc<1) then loc:=posex(lowercase(findstr),tmp);
-  if (loc<1) then
+  if not(assigned(CurrentEditor.SearchEngine)) then
   begin
-    MessageDlg('Not found.',mtWarning,[mbCancel],0);
-    exit;
+    CurrentEditor.SearchEngine:=SynEditSearch1;
   end;
-  Currenteditor.SelStart:=loc-1;
-  CurrentEditor.SelLength:=length(findstr);
-end;
-
-procedure TfrmMoocoderMain.DoKeyPress(sender: TObject; var key: Char);
-var indent:Integer; s:String; re:TRichEdit; n:Integer;
-begin
-  if (key=cr) then
+  ret:=CurrentEditor.SearchReplace(findstr,findstr,[]);
+  if (ret<=0) then
   begin
-    re:=CurrentEditor;
-    s:=re.Lines[LineNo-1];
-    indent:=1;
-    while (indent<=length(s)) and (s[indent]=' ') do inc(indent);
-    if (indent>1) then
-    begin
-      re.SelText:=StringOfChar(' ',indent-1);
-//      re.SelStart:=re.selstart+indent-2;
-      key:=#0;
-    end;
+    CurrentEditor.SelStart:=0;
+    CurrentEditor.SearchReplace(findstr,findstr,[]);
   end;
 end;
 
@@ -920,9 +903,9 @@ begin
   begin
     s1:=parseSepField(line,':');
     lno:=atol(copy(s1,5,255));
-    x:=CurrentEditor.Perform(EM_LINEINDEX,lno,0);
+    CurrentEditor.Carety:=lno+1;
+    CurrentEditor.CaretX:=1;
     n:=length(currenteditor.Lines[lno]);
-    CurrentEditor.SelStart:=x;
     CurrentEditor.SelLength:=n;
     CurrentEditor.SetFocus;
 //e 5:  syntax error
@@ -1300,27 +1283,35 @@ begin
 end;
 
 function TfrmMoocoderMain.AddTab(caption,txt:String; iscode:Integer):TTabsheet;
-var tb:TTabsheet; edit:TRichEdit; pn:TPanel; ed:TEdit; lb:TLabel;
+var tb:TTabsheet; edit:TSynEdit; pn:TPanel; ed:TEdit; lb:TLabel;
 begin
   tb:=TTabSheet.Create(self);
   tb.Tag:=iscode;
   tb.PageControl:=pages;
   tb.Caption:=caption;
-  edit:=TRichEdit.Create(tb);
+  edit:=TSynEdit.Create(tb);
   edit.Parent:=tb;
   edit.Align:=alClient;
   edit.Text:='';
   edit.Perform(EM_SETTEXTMODE,TM_MULTILEVELUNDO or TM_RICHTEXT,0);
 //  adddebug('Undo='+inttostr(edit.Perform(EM_SETUNDOLIMIT,20,0)));
-  edit.Text:=txt;
-  edit.Font.Assign(memo1.font);
+  edit.text:=txt;
+  edit.Font.Charset := DEFAULT_CHARSET;
+  edit.Font.Color := clWhite;
+//  edit.Font.Height := -13;
+  edit.Font.Size:=12;
+  edit.Font.Name := 'Courier New';
+  edit.Font.Style := [];
+//  edit.Font.Assign(memo1.font);
   edit.color:=memo1.color;
   tb.TabVisible:=true;
   edit.ScrollBars:=ssBoth;
-  edit.OnSelectionChange:=Memo1SelectionChange;
-  edit.OnKeyPress:=DoKeyPress;
   edit.HideSelection:=false;
   edit.OnChange:=Memo1Change;
+  edit.Highlighter:=moosyn;
+  edit.RightEdge:=0;
+  edit.Gutter.ShowLineNumbers:=true;
+  edit.Gutter.LineNumberStart:=0;
   SetChanged(edit,false);
   if iscode>=1 then
   begin
@@ -1339,19 +1330,6 @@ begin
     ed.Align:=alClient;
   end;
   exit(tb);
-end;
-
-procedure TfrmMoocoderMain.ApplicationEvents1Idle(Sender: TObject; var Done: Boolean);
-var re:TRichEdit;
-begin
-  re:=CurrentEditor;
-  if (re=nil) then exit;
-  if (re.Parent.Tag<1) then exit;
-  if SynLine>=re.Lines.Count then exit;
-  done:=false;
-  if (SecondsBetween(now,synwait)<1) then exit;
-  SyntaxHighlight(re,Synline);
-  inc(synline);
 end;
 
 procedure TfrmMoocoderMain.SyntaxHighlight(re:TRichEdit; lno:Integer);
