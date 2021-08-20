@@ -5,7 +5,7 @@ This is written in Delphi 10.2, and is now using synedit for the editor, so you 
 
 This also acts as a simple mush client.
 
-Usage:
+### Usage:
   Settings->Connect to a mush server.
   
  Once logged in (as a programmer) use "Dump" on an object to load all the verbs into separate editable tabs. This can then be edited, and sent back to the MOO server to compile.
@@ -24,13 +24,16 @@ Usage:
  Ctrl+F works as Find.
  
  Ctrl+G goes to a line number.
+
+ Ctrl+R reload the current verb code from the server.
  
  Project->New Verb : will do @verb for you and load the tab. (Take a few seconds currently)
  
  Basic syntax highlighting has been implemented.
  
+NOTE: Ansi codes are currently stripped by the @dump command. The "Get Verbs" mostly deals with this OK. It is something to be aware of.
  
- === Not working yet ===
+### Not working yet 
  This is not idiot proofed.
  
  Multiple instances of verbs with the same name probably won't load correctly.
