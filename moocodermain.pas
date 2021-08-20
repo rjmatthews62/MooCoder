@@ -53,6 +53,7 @@ type
     actDump: TAction;
     Dump1: TMenuItem;
     SynEditSearch1: TSynEditSearch;
+    RemoveTab1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -81,6 +82,10 @@ type
     procedure Replace1Click(Sender: TObject);
     procedure actNewVerbExecute(Sender: TObject);
     procedure Connection1Click(Sender: TObject);
+    procedure RemoveTab1Click(Sender: TObject);
+    procedure lvVerbsColumnClick(Sender: TObject; Column: TListColumn);
+    procedure lvVerbsCompare(Sender: TObject; Item1, Item2: TListItem;
+      Data: Integer; var Compare: Integer);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -111,7 +116,7 @@ type
     procedure ProcessVerb(t: TStrings);
     procedure UpdateVerbs;
     procedure DoCheckName(sender: TObject; line: String);
-    function FindVerbEditor(obj, verb:String): TRichEdit;
+    function FindVerbEditor(obj,verb:String): TSynEdit;
     function FindVerbHelp(obj, verb: String): String;
     procedure FetchVerb(obj, verb: String);
     procedure CheckName(obj: String);
@@ -156,6 +161,7 @@ type
     verblist:TStringList;
     namelist:TStringList;
     whenfinished:TThreadProcedure;
+    sortby:Integer;
     function StripAnsi(s:String):String;
     function SelectError(obj, verb: String; lno: Integer): Boolean;
     procedure AddChar(c:Char);
@@ -213,12 +219,53 @@ begin
   result:=false;
 end;
 
+procedure TfrmMoocoderMain.lvVerbsColumnClick(Sender: TObject;
+  Column: TListColumn);
+begin
+  sortby:=column.Index;
+  lvVerbs.AlphaSort;
+end;
+
+procedure TfrmMoocoderMain.lvVerbsCompare(Sender: TObject; Item1,
+  Item2: TListItem; Data: Integer; var Compare: Integer);
+var s1,s2:String;
+
+  function cmpobj:Integer;
+  var n1,n2:Integer;
+  begin
+    n1:=atol(copy(item1.Caption,2));
+    n2:=atol(copy(item2.Caption,2));
+    result:=n1-n2;
+  end;
+
+begin
+  case sortby of
+  0: begin // Obj id/Verb
+       compare:=cmpobj;
+       if (compare=0) then compare:=AnsiCompareText(item1.SubItems[1],item2.SubItems[1]);
+     end;
+  1: begin // Obj Name/Verb
+       compare:=AnsiCompareText(item1.SubItems[0],item2.SubItems[0]);
+       if (compare=0) then compare:=AnsiCompareText(item1.SubItems[1],item2.SubItems[1]);
+     end;
+  2: begin // Verb/Obj
+       compare:=AnsiCompareText(item1.SubItems[1],item2.SubItems[1]);
+       if (compare=0) then compare:=cmpobj;
+     end;
+  else
+    begin
+      compare:=AnsiCompareText(item1.SubItems[sortby-1],item2.SubItems[sortby-1]);
+    end;
+  end; {Case}
+end;
+
 procedure TfrmMoocoderMain.lvVerbsDblClick(Sender: TObject);
 var nd:TListItem; obj,verb:string;
 begin
   nd:=lvVerbs.Selected;
   obj:=nd.Caption;
   verb:=nd.SubItems[1];
+  verb:=GetSepField(verb,1,'*');
   FindVerb(obj,verb,0);
 end;
 
@@ -404,6 +451,18 @@ begin
   begin
     FetchVerb(obj,verb);
   end;
+end;
+
+procedure TfrmMoocoderMain.RemoveTab1Click(Sender: TObject);
+var tb:TTabSheet;
+begin
+  tb:=pages.ActivePage;
+  if (tb.Tag<1) then exit;
+  if CurrentEditor.Modified then
+  begin
+    if MessageDlg('Delete modified tab?',mtConfirmation,mbOkCancel,0)<>mrOK then exit;
+  end;
+  tb.Free;
 end;
 
 procedure TfrmMoocoderMain.Replace1Click(Sender: TObject);
@@ -692,16 +751,18 @@ begin
 end;
 
 procedure TfrmMoocoderMain.NewTab1Click(Sender: TObject);
-var t:TStringList;
+var s:String; obj,verb:String;
 begin
-  t:=TStringList.Create;
-  t.Text:=clipboard.AsText;
-  if (t.count<1) or not(t[0].StartsWith('@program')) then
+  s:='';
+  if inputquery('New Tab','Enter obj:verb',s) then
   begin
-    ShowMessage('You must select the entire verb, beginning with @program');
-    exit;
+    if not(parseVerb(s,obj,verb)) then
+    begin
+      MessageDlg('Invalid syntax',mtWarning,[mbCancel],0);
+      exit;
+    end;
+    FindVerb(obj,verb,0);
   end;
-  ProcessVerb(t);
 end;
 
 function TfrmMoocoderMain.StripAnsi(s: String): String;
@@ -979,7 +1040,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoCheckVerb(sender: TObject; line: String);
-var t:TStringList; s,obj,verb:String; i:Integer;
+var t:TStringList; prog,s,obj,verb:String; i:Integer;
 begin
   if (line.Contains('***finished***')) then
   begin
@@ -988,15 +1049,22 @@ begin
     try
       t.Text:=verbcollect;
       t.Add('.');
-      s:=t[0];
-      if (s='That object does not define that verb.') then
+      prog:=t[0];
+      if (prog='That object does not define that verb.') then
       begin
         showmessage('Verb not found.');
         exit;
       end;
-
-      obj:=parsesepfield(s,':');
-      verb:=parse(s);
+      for i:=0 to t.Count-1 do
+      begin
+        if t[i].EndsWith('[normal]') then // Stupid ansi is stupid.
+        begin
+          s:=t[i];
+          t[i]:=copy(s,1,length(s)-length('[normal]'));
+        end;
+      end;
+      obj:=parsesepfield(prog,':');
+      verb:=parse(prog);
       if (verb.StartsWith('"')) then verb:=GetSepField(verb,2,'"');
       i:=pos('*',verb);
       if (i>0) then verb:=copy(verb,1,i-1);
@@ -1014,6 +1082,7 @@ begin
       end;
       lastlno:=0;
       CheckName(obj);
+      verblist.Add(obj+':'+verb);
       UpdateVerbs;
     finally
       freeandnil(t);
@@ -1151,6 +1220,7 @@ procedure TfrmMoocoderMain.DoCheckName(sender: TObject; line: String);
 var aname:String;
 begin
   if AnsiContainsText(line,'***finished***') then exit; // Ignore trailing stuff.
+  if line.StartsWith('=> 0') then exit;// tailing result.
   OnExamineLine:=DoCheckTest;
   if not(line.StartsWith('=>')) then
   begin
@@ -1164,9 +1234,17 @@ end;
 
 procedure TfrmMoocoderMain.UpdateVerbs;
 var nd:TListItem; s:String; obj,verb:String;
+    oldverb,oldobj:String; i:Integer;
 begin
   lvVerbs.Items.BeginUpdate;
   try
+    oldverb:='';
+    nd:=lvVerbs.Selected;
+    if (nd<>nil) then
+    begin
+      oldobj:=nd.Caption;
+      oldverb:=nd.SubItems[1];
+    end;
     lvVerbs.Items.Clear;
     for s in verblist do
     begin
@@ -1179,13 +1257,25 @@ begin
       nd.SubItems.Add(FindVerbHelp(obj,verb));
     end;
     FitListContents(lvVerbs);
+    if oldverb<>'' then
+    begin
+      for i:=0 to lvVerbs.Items.Count-1 do
+      begin
+        nd:=lvVerbs.Items[i];
+        if AnsiSameText(nd.Caption,oldobj) and AnsiSameText(nd.SubItems[1],oldverb) then
+        begin
+          lvVerbs.ItemIndex:=i;
+          break;
+        end;
+      end;
+    end;
   finally
     lvVerbs.Items.EndUpdate;
   end;
 end;
 
 function TfrmMoocoderMain.FindVerbHelp(obj,verb:String):String;
-var re:TRichEdit; s:String;
+var re:TSynEdit; s:String;
 begin
   re:=FindVerbEditor(obj,verb);
   result:='No Help';
@@ -1201,22 +1291,24 @@ begin
   end;
 end;
 
-function TfrmMoocoderMain.FindVerbEditor(obj,verb:String):TRichEdit;
-var i:Integer; re:TRichEdit; tb:TTabSheet; s:String;
+function TfrmMoocoderMain.FindVerbEditor(obj,verb:String):TSynEdit;
+var i:Integer; re:TSynEdit; tb:TTabSheet; s:String; searchverb:String;
+    averb,aobj:String;
 begin
+  searchverb:=GetSepField(verb,1,'*'); // Handle wildcards.
   for i:=1 to pages.PageCount-1 do
   begin
     tb:=pages.Pages[i];
     if tb.Tag<1 then continue;
-    re:=FindByType(pages.Pages[i],'TRichEdit') as TRichEdit;
+    re:=FindByType(pages.Pages[i],'TSynEdit') as TSynEdit;
     if re<>nil then
     begin
       if re.Lines.Count>1 then
       begin
         s:=re.lines[0];
-        if AnsiSameText(trim(s),'@program '+obj+':'+verb) then
+        if ParseVerb(s,aobj,averb) then
         begin
-          exit(re);
+          if AnsiSameText(aobj,obj) and AnsiSameText(averb,searchverb) then exit(re);
         end;
       end;
     end;

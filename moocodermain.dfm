@@ -2,7 +2,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   Left = 0
   Top = 0
   Caption = 'MooCoder'
-  ClientHeight = 634
+  ClientHeight = 614
   ClientWidth = 943
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   TextHeight = 16
   object Panel1: TPanel
     Left = 0
-    Top = 528
+    Top = 508
     Width = 943
     Height = 87
     Align = alBottom
@@ -89,7 +89,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object Memo2: TMemo
     Left = 0
-    Top = 439
+    Top = 419
     Width = 943
     Height = 89
     Align = alBottom
@@ -108,7 +108,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Left = 0
     Top = 0
     Width = 943
-    Height = 439
+    Height = 419
     ActivePage = tbVerbs
     Align = alClient
     MultiLine = True
@@ -126,7 +126,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 408
+        Height = 388
         Align = alClient
         Color = clBlack
         Font.Charset = ANSI_CHARSET
@@ -152,7 +152,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 408
+        Height = 388
         Align = alClient
         Columns = <
           item
@@ -171,13 +171,15 @@ object frmMoocoderMain: TfrmMoocoderMain
         RowSelect = True
         TabOrder = 0
         ViewStyle = vsReport
+        OnColumnClick = lvVerbsColumnClick
+        OnCompare = lvVerbsCompare
         OnDblClick = lvVerbsDblClick
       end
     end
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 615
+    Top = 595
     Width = 943
     Height = 19
     Panels = <
@@ -244,6 +246,10 @@ object frmMoocoderMain: TfrmMoocoderMain
       ShortCut = 16456
       OnClick = Replace1Click
     end
+    object RemoveTab1: TMenuItem
+      Caption = 'Remove Tab'
+      OnClick = RemoveTab1Click
+    end
   end
   object ApplicationEvents1: TApplicationEvents
     Left = 716
@@ -285,7 +291,7 @@ object frmMoocoderMain: TfrmMoocoderMain
       OnExecute = btnCompileClick
     end
     object actVerb: TAction
-      Caption = '&Verb'
+      Caption = 'Get &Verbs'
       Hint = 'Load Verb list for an object'
       ShortCut = 24662
       OnExecute = btnVerbsClick
