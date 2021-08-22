@@ -16,7 +16,7 @@ uses
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber,
-    tkPreprocessor, tkSpace, tkString, tkSymbol, tkVerb, tkProperty, tkUnknown);
+    tkPreprocessor, tkSpace, tkString, tkSymbol, tkVerb, tkProperty, tkList, tkUnknown);
 
   TCommentStyle = (csAnsiStyle, csPasStyle, csCStyle, csAsmStyle, csBasStyle,
     csCPPStyle);
@@ -54,6 +54,7 @@ type
     FStringMultiLine : Boolean;
     fVerbAttr:TSynHighlighterAttributes;
     fPropAttr:TSynHighlighterAttributes;
+    fListAttr:TSynHighlighterAttributes;
     procedure AsciiCharProc;
     procedure BraceOpenProc;
     procedure PointCommaProc;
@@ -212,6 +213,9 @@ begin
   fPropAttr:=TSynHighlighterAttributes.Create('Property','Property');
   fVerbAttr.Foreground:=clWebMagenta;
   fPropAttr.Foreground:=clWebLawnGreen;
+  fListAttr:=TSynHighlighterAttributes.Create('List','List');
+  fListAttr.Foreground:=clWebCyan;
+  fListAttr.Style:=[fsBold];
   fStringDelim := sdSingleQuote;
   fIdentChars := cDefaultIdentChars;
   fRange := rsUnknown;
@@ -524,6 +528,7 @@ begin
   repeat
     case FLine[Run] of
       #0 :  break;
+      '\': inc(run); // Escaped.
       #10, #13: if not StringMultiLine then break;
     end;
     inc(Run);
@@ -568,7 +573,11 @@ begin
         '#': AsciiCharProc;
         ':': VerbProc;
         '.': PropertyProc;
-        '{': BraceOpenProc;
+        '{','}': begin
+                   inc(run);
+                   fTokenID:=tkList;
+                 end;
+//        '{': BraceOpenProc;
         ';': PointCommaProc;
         #13: CRProc;
         'A'..'Z', 'a'..'z', '_': IdentProc;
@@ -640,10 +649,12 @@ begin
     tkPreprocessor: Result := fPreprocessorAttri;
     tkSpace: Result := fSpaceAttri;
     tkString: Result := fStringAttri;
-    tkSymbol: Result := fSymbolAttri;
+    tkSymbol:
+       Result := fSymbolAttri;
     tkUnknown: Result := fSymbolAttri;
     tkVerb: result:= fVerbAttr;
     tkProperty: result:= fPropAttr;
+    tkList: result:=fListAttr;
   else
     Result := nil;
   end;

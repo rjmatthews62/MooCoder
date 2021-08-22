@@ -2,7 +2,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   Left = 0
   Top = 0
   Caption = 'MooCoder'
-  ClientHeight = 614
+  ClientHeight = 594
   ClientWidth = 943
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -19,7 +19,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   TextHeight = 16
   object Panel1: TPanel
     Left = 0
-    Top = 508
+    Top = 488
     Width = 943
     Height = 87
     Align = alBottom
@@ -89,7 +89,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object Memo2: TMemo
     Left = 0
-    Top = 419
+    Top = 399
     Width = 943
     Height = 89
     Align = alBottom
@@ -108,8 +108,8 @@ object frmMoocoderMain: TfrmMoocoderMain
     Left = 0
     Top = 0
     Width = 943
-    Height = 419
-    ActivePage = tbVerbs
+    Height = 399
+    ActivePage = tbMain
     Align = alClient
     MultiLine = True
     TabOrder = 2
@@ -126,7 +126,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 388
+        Height = 368
         Align = alClient
         Color = clBlack
         Font.Charset = ANSI_CHARSET
@@ -142,6 +142,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         TabOrder = 0
         Zoom = 100
         OnChange = Memo1Change
+        OnDblClick = Memo2DblClick
         OnSelectionChange = Memo1SelectionChange
       end
     end
@@ -152,7 +153,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Left = 0
         Top = 0
         Width = 935
-        Height = 388
+        Height = 368
         Align = alClient
         Columns = <
           item
@@ -179,7 +180,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 595
+    Top = 575
     Width = 943
     Height = 19
     Panels = <
@@ -272,6 +273,9 @@ object frmMoocoderMain: TfrmMoocoderMain
       object Dump1: TMenuItem
         Action = actDump
       end
+      object Clear1: TMenuItem
+        Action = actClear
+      end
     end
     object Settings1: TMenuItem
       Caption = '&Settings'
@@ -305,6 +309,10 @@ object frmMoocoderMain: TfrmMoocoderMain
       Hint = 'Grab the output of a dump.'
       ShortCut = 24644
       OnExecute = btnDumpClick
+    end
+    object actClear: TAction
+      Caption = 'Clear All'
+      OnExecute = actClearExecute
     end
   end
   object SynEditSearch1: TSynEditSearch

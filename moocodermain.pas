@@ -54,6 +54,8 @@ type
     Dump1: TMenuItem;
     SynEditSearch1: TSynEditSearch;
     RemoveTab1: TMenuItem;
+    actClear: TAction;
+    Clear1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -86,6 +88,7 @@ type
     procedure lvVerbsColumnClick(Sender: TObject; Column: TListColumn);
     procedure lvVerbsCompare(Sender: TObject; Item1, Item2: TListItem;
       Data: Integer; var Compare: Integer);
+    procedure actClearExecute(Sender: TObject);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -127,6 +130,7 @@ type
     procedure DoReplace;
     procedure Doconnection;
     function EditSettings: Boolean;
+    function IsAnyModified: Boolean;
     { Private declarations }
   public
     { Public declarations }
@@ -313,6 +317,37 @@ begin
   format.dwMask:=format.dwMask or CFM_BACKCOLOR;
   format.crBackColor:=acolor;
   re.Perform(EM_SETCHARFORMAT,SCF_SELECTION,@format);
+end;
+
+procedure TfrmMoocoderMain.actClearExecute(Sender: TObject);
+var i:Integer; tb:TTabsheet;
+begin
+  if isAnyModified then
+  begin
+    if MessageDlg('Discard modified tabs?',mtConfirmation,mbOkCancel,0)<>mrOK then exit;
+  end;
+  for i:=pages.PageCount-1 downto 2 do
+  begin
+    tb:=pages.Pages[i];
+    if (tb.Tag>0) then tb.Free;
+  end;
+  verblist.Clear;
+  updateverbs;
+end;
+
+function TfrmMoocoderMain.IsAnyModified:Boolean;
+var i:Integer; ed:TSynEdit; tb:TTabsheet;
+begin
+  for i:=2 to pages.PageCount-1 do
+  begin
+    tb:=pages.Pages[i];
+    if tb.Tag>0 then
+    begin
+      ed:=FindByType(tb,'TSynEdit') as TSynEdit;
+      if (assigned(ed)) and (ed.Modified) then exit(true);
+    end;
+  end;
+  result:=false;
 end;
 
 procedure TfrmMoocoderMain.actNewVerbExecute(Sender: TObject);
@@ -664,6 +699,8 @@ begin
   moosyn.StringAttribute.Foreground:=clYellow;
   moosyn.KeywordAttribute.Foreground:=clWebCyan;
   moosyn.PreprocessorAttri.Foreground:=clWebSalmon;
+  moosyn.SymbolAttri.ForeGround:=clWebBeige;
+  moosyn.SymbolAttri.Style:=[fsBold];
   moosyn.StringDelim:=sdDoubleQuote;
   moosyn.DetectPreprocessor:=true;
 end;
@@ -724,6 +761,7 @@ var x:Integer; e:TSynEdit;
 begin
   e:=CurrentEditor;
   e.CaretY:=value+1;
+  e.CaretX:=1;
 end;
 
 procedure TfrmMoocoderMain.Memo1SelectionChange(Sender: TObject);
@@ -732,11 +770,14 @@ begin
 end;
 
 procedure TfrmMoocoderMain.Memo2DblClick(Sender: TObject);
-var lno:Integer; line:String; prog,obj,verb:String;
+var lno:Integer; line:String; prog,obj,verb:String; lines:TStrings; m:TCustomMemo;
 begin
 //  ... called from #540:stacker (this == #540), line 2
-  lno:=memo2.Perform(EM_LINEFROMCHAR, memo2.SelStart, 0);
-  line:=memo2.Lines[lno];
+  if not(sender is TCustomMemo) then exit;
+  m:=sender as TCustomMemo;
+  lno:=m.Perform(EM_LINEFROMCHAR, m.SelStart, 0);
+  lines:=m.Lines;
+  line:=Lines[lno];
   if trim(line).StartsWith('... called from') then
   begin
     delete(line,1,pos('#',line)-1);
