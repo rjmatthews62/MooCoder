@@ -135,9 +135,9 @@ implementation
 uses
   SynEditStrConst;
 
-const KeywordList:Array[1..12] of String = ('if','then','else','elseif','for',
+const KeywordList:Array[1..14] of String = ('if','then','else','elseif','for',
            'while','endfor','endwhile','endif',
-           'try','except','endtry');
+           'try','except','endtry','break','continue');
 
 function TSynMooCodeSyn.IsIdentChar(AChar: WideChar): Boolean;
 var
