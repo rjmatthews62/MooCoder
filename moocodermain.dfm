@@ -2,7 +2,7 @@ object frmMoocoderMain: TfrmMoocoderMain
   Left = 0
   Top = 0
   Caption = 'MooCoder'
-  ClientHeight = 594
+  ClientHeight = 574
   ClientWidth = 943
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
@@ -13,17 +13,48 @@ object frmMoocoderMain: TfrmMoocoderMain
   Menu = MainMenu1
   OldCreateOrder = False
   PopupMenu = PopupMenu1
+  Position = poDefault
+  WindowState = wsMaximized
   OnCreate = FormCreate
   OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 16
+  object Splitter1: TSplitter
+    Left = 0
+    Top = 313
+    Width = 943
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+    Visible = False
+    ExplicitTop = 0
+    ExplicitWidth = 348
+  end
+  object Splitter2: TSplitter
+    Left = 0
+    Top = 405
+    Width = 943
+    Height = 3
+    Cursor = crVSplit
+    Align = alBottom
+    ExplicitTop = 430
+  end
+  object Splitter3: TSplitter
+    Left = 597
+    Top = 0
+    Height = 313
+    Align = alRight
+    Visible = False
+    ExplicitLeft = 480
+    ExplicitTop = 268
+    ExplicitHeight = 100
+  end
   object Panel1: TPanel
     Left = 0
-    Top = 488
+    Top = 468
     Width = 943
     Height = 87
     Align = alBottom
-    Caption = 'Panel1'
     TabOrder = 0
     object Edit1: TEdit
       Left = 8
@@ -87,9 +118,9 @@ object frmMoocoderMain: TfrmMoocoderMain
       TabOrder = 5
     end
   end
-  object Memo2: TMemo
+  object memoDebug: TMemo
     Left = 0
-    Top = 399
+    Top = 316
     Width = 943
     Height = 89
     Align = alBottom
@@ -99,21 +130,26 @@ object frmMoocoderMain: TfrmMoocoderMain
     Font.Name = 'Tahoma'
     Font.Style = []
     Lines.Strings = (
-      'Memo2')
+      'Debug')
     ParentFont = False
     TabOrder = 1
-    OnDblClick = Memo2DblClick
+    Visible = False
+    OnDblClick = memoDebugDblClick
+    ExplicitLeft = 8
+    ExplicitTop = 310
   end
   object pages: TPageControl
     Left = 0
     Top = 0
-    Width = 943
-    Height = 399
+    Width = 597
+    Height = 313
     ActivePage = tbMain
     Align = alClient
     MultiLine = True
     TabOrder = 2
     OnChange = pagesChange
+    ExplicitWidth = 943
+    ExplicitHeight = 379
     object tbMain: TTabSheet
       Caption = 'Main'
       Font.Charset = DEFAULT_CHARSET
@@ -122,11 +158,13 @@ object frmMoocoderMain: TfrmMoocoderMain
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
+      ExplicitWidth = 935
+      ExplicitHeight = 348
       object Memo1: TRichEdit
         Left = 0
         Top = 0
-        Width = 935
-        Height = 368
+        Width = 589
+        Height = 282
         Align = alClient
         Color = clBlack
         Font.Charset = ANSI_CHARSET
@@ -142,18 +180,22 @@ object frmMoocoderMain: TfrmMoocoderMain
         TabOrder = 0
         Zoom = 100
         OnChange = Memo1Change
-        OnDblClick = Memo2DblClick
+        OnDblClick = memoDebugDblClick
         OnSelectionChange = Memo1SelectionChange
+        ExplicitWidth = 935
+        ExplicitHeight = 348
       end
     end
     object tbVerbs: TTabSheet
       Caption = 'Verbs'
       ImageIndex = 1
+      ExplicitWidth = 935
+      ExplicitHeight = 348
       object lvVerbs: TListView
         Left = 0
         Top = 0
-        Width = 935
-        Height = 368
+        Width = 589
+        Height = 282
         Align = alClient
         Columns = <
           item
@@ -175,12 +217,14 @@ object frmMoocoderMain: TfrmMoocoderMain
         OnColumnClick = lvVerbsColumnClick
         OnCompare = lvVerbsCompare
         OnDblClick = lvVerbsDblClick
+        ExplicitWidth = 935
+        ExplicitHeight = 348
       end
     end
   end
   object StatusBar1: TStatusBar
     Left = 0
-    Top = 575
+    Top = 555
     Width = 943
     Height = 19
     Panels = <
@@ -192,6 +236,33 @@ object frmMoocoderMain: TfrmMoocoderMain
         Text = 'Other'
         Width = 60
       end>
+  end
+  object memoHistory: TMemo
+    Left = 0
+    Top = 408
+    Width = 943
+    Height = 60
+    Align = alBottom
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Tahoma'
+    Font.Style = []
+    ParentFont = False
+    TabOrder = 4
+    ExplicitTop = 416
+  end
+  object memoStack: TMemo
+    Left = 600
+    Top = 0
+    Width = 343
+    Height = 313
+    Align = alRight
+    Lines.Strings = (
+      'Stack')
+    TabOrder = 5
+    Visible = False
+    OnDblClick = memoDebugDblClick
   end
   object client: TClientSocket
     Active = False
@@ -251,6 +322,16 @@ object frmMoocoderMain: TfrmMoocoderMain
       Caption = 'Remove Tab'
       OnClick = RemoveTab1Click
     end
+    object LastCommand1: TMenuItem
+      Caption = 'Last Command'
+      ShortCut = 16422
+      OnClick = LastCommand1Click
+    end
+    object NextCommand1: TMenuItem
+      Caption = 'Next Command'
+      ShortCut = 16424
+      OnClick = NextCommand1Click
+    end
   end
   object ApplicationEvents1: TApplicationEvents
     Left = 716
@@ -284,6 +365,17 @@ object frmMoocoderMain: TfrmMoocoderMain
         OnClick = Connection1Click
       end
     end
+    object View1: TMenuItem
+      Caption = '&View'
+      object Stack1: TMenuItem
+        Caption = '&Stack'
+        OnClick = Stack1Click
+      end
+      object Debug1: TMenuItem
+        Caption = '&Debug'
+        OnClick = Debug1Click
+      end
+    end
   end
   object ActionList1: TActionList
     Left = 600
@@ -295,7 +387,7 @@ object frmMoocoderMain: TfrmMoocoderMain
       OnExecute = btnCompileClick
     end
     object actVerb: TAction
-      Caption = 'Get &Verbs'
+      Caption = 'Get Verbs'
       Hint = 'Load Verb list for an object'
       ShortCut = 24662
       OnExecute = btnVerbsClick

@@ -19,7 +19,7 @@ type
     Button1: TButton;
     client: TClientSocket;
     ckConnect: TCheckBox;
-    Memo2: TMemo;
+    memoDebug: TMemo;
     tmrQueue: TTimer;
     pages: TPageControl;
     tbMain: TTabSheet;
@@ -56,6 +56,16 @@ type
     RemoveTab1: TMenuItem;
     actClear: TAction;
     Clear1: TMenuItem;
+    View1: TMenuItem;
+    Stack1: TMenuItem;
+    Debug1: TMenuItem;
+    Splitter1: TSplitter;
+    memoHistory: TMemo;
+    Splitter2: TSplitter;
+    LastCommand1: TMenuItem;
+    NextCommand1: TMenuItem;
+    memoStack: TMemo;
+    Splitter3: TSplitter;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -73,7 +83,7 @@ type
     procedure Button4Click(Sender: TObject);
     procedure Memo1Change(Sender: TObject);
     procedure GotoLine1Click(Sender: TObject);
-    procedure Memo2DblClick(Sender: TObject);
+    procedure memoDebugDblClick(Sender: TObject);
     procedure FindTab1Click(Sender: TObject);
     procedure NewTab1Click(Sender: TObject);
     procedure Refresh1Click(Sender: TObject);
@@ -89,6 +99,10 @@ type
     procedure lvVerbsCompare(Sender: TObject; Item1, Item2: TListItem;
       Data: Integer; var Compare: Integer);
     procedure actClearExecute(Sender: TObject);
+    procedure Debug1Click(Sender: TObject);
+    procedure LastCommand1Click(Sender: TObject);
+    procedure NextCommand1Click(Sender: TObject);
+    procedure Stack1Click(Sender: TObject);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -131,6 +145,8 @@ type
     procedure Doconnection;
     function EditSettings: Boolean;
     function IsAnyModified: Boolean;
+    procedure AddHistory(msg: String);
+    procedure SetStackVisible(isVisible:Boolean);
     { Private declarations }
   public
     { Public declarations }
@@ -166,6 +182,7 @@ type
     namelist:TStringList;
     whenfinished:TThreadProcedure;
     sortby:Integer;
+    oldDebug:Integer;
     function StripAnsi(s:String):String;
     function SelectError(obj, verb: String; lno: Integer): Boolean;
     procedure AddChar(c:Char);
@@ -221,6 +238,17 @@ begin
     if ansiSameText(aword,s) then exit(true);
   end;
   result:=false;
+end;
+
+procedure TfrmMoocoderMain.LastCommand1Click(Sender: TObject);
+var lno:Integer;
+begin
+  if memoHistory.Lines.count<1 then exit;
+  lno:=memoHistory.Perform(EM_LINEFROMCHAR, memoHistory.SelStart, 0);
+  lno:=max(lno-1,0);
+  memoHistory.SelStart:=memoHistory.Perform(EM_LINEINDEX,lno,0);
+  edit1.Text:=memoHistory.Lines[lno];
+  edit1.SetFocus;
 end;
 
 procedure TfrmMoocoderMain.lvVerbsColumnClick(Sender: TObject;
@@ -558,18 +586,23 @@ end;
 
 procedure TfrmMoocoderMain.AddDebug(msg: String);
 begin
-  Memo2.Lines.Add(msg);
+  memoDebug.Lines.Add(msg);
+end;
+
+procedure TfrmMoocoderMain.AddHistory(msg: String);
+begin
+  memoHistory.Lines.Add(msg);
 end;
 
 procedure TfrmMoocoderMain.Addln(msg: String);
 begin
-  memo1.Lines.Add(msg);
+  memoDebug.Lines.Add(msg);
 end;
 
 procedure TfrmMoocoderMain.Button1Click(Sender: TObject);
 begin
   client.Socket.SendText(edit1.Text+#10);
-  adddebug(edit1.Text);
+  addhistory(edit1.Text);
   edit1.Text:='';
 end;
 
@@ -769,7 +802,7 @@ begin
   StatusBar1.Panels[1].Text:=inttostr(LineNo);
 end;
 
-procedure TfrmMoocoderMain.Memo2DblClick(Sender: TObject);
+procedure TfrmMoocoderMain.memoDebugDblClick(Sender: TObject);
 var lno:Integer; line:String; prog,obj,verb:String; lines:TStrings; m:TCustomMemo;
 begin
 //  ... called from #540:stacker (this == #540), line 2
@@ -788,7 +821,18 @@ begin
     begin
       FindVerb(obj,verb,lno);
     end;
-  end;
+  end
+  else if line.StartsWith('#') and line.Contains(', line') then
+  begin
+    prog:=ParseSepField(line,',');
+    Parse(line); // Skip "line"
+    lno:=atol(ParseSepField(line,':'));
+    parseVerb(prog,obj,verb);     //Should strip out trailing defs.
+    if not SelectError(obj,verb,lno) then
+    begin
+      FetchVerb(obj,verb);
+    end;
+  end
 end;
 
 procedure TfrmMoocoderMain.NewTab1Click(Sender: TObject);
@@ -804,6 +848,22 @@ begin
     end;
     FindVerb(obj,verb,0);
   end;
+end;
+
+procedure TfrmMoocoderMain.NextCommand1Click(Sender: TObject);
+var lno:Integer;
+begin
+  if memoHistory.Lines.count<1 then exit;
+  lno:=memoHistory.Perform(EM_LINEFROMCHAR, memoHistory.SelStart, 0);
+  lno:=min(lno+1,memoHistory.Lines.Count-1);
+  memoHistory.SelStart:=memoHistory.Perform(EM_LINEINDEX,lno,0);
+  edit1.Text:=memoHistory.Lines[lno];
+  edit1.SetFocus;
+end;
+
+procedure TfrmMoocoderMain.Stack1Click(Sender: TObject);
+begin
+  SetStackVisible(not(memoStack.Visible));
 end;
 
 function TfrmMoocoderMain.StripAnsi(s: String): String;
@@ -997,6 +1057,22 @@ begin
   result:=FindByType(tb,'TEdit') as TEdit;
 end;
 
+procedure TfrmMoocoderMain.Debug1Click(Sender: TObject);
+begin
+  if memoDebug.Visible then
+  begin
+    memoDebug.visible:=false;
+    splitter1.Visible:=false;
+  end
+  else
+  begin
+    memoDebug.visible:=true;
+    memoDebug.Top:=splitter2.Top-memoDebug.Height;
+    splitter1.Visible:=true;
+    splitter1.Top:=memoDebug.top-splitter1.Height;
+  end;
+end;
+
 procedure TfrmMoocoderMain.DoCheckCompile(sender: TObject; line: String);
 var lno,x,n:Integer; s1,s2:String;  e:TEdit;
 begin
@@ -1038,20 +1114,27 @@ end;
 
 procedure TfrmMoocoderMain.DoCheckTest(sender: TObject; line: String);
 var obj,prog,verb,lno,error:String; i:Integer; re:TRichEdit;
+    startline:String;
 begin
-  if (getstack) then adddebug(line);
+  if (getstack) then memoStack.Lines.Add(line);
   //#540:test (this == #540), line 5:  Type mismatch (expected integer; got float)
   //#151:+attacks, line 9:  Verb not found: #548:energy_cast()
   //#151:+deploy deploy, line 28:  Range error
   if line.StartsWith('#') and line.Contains(', line') then
   begin
-    adddebug(line);
+//    adddebug(line);
+    startline:=line;
     prog:=ParseSepField(line,',');
     Parse(line); // Skip "line"
     lno:=ParseSepField(line,':');
     parseVerb(prog,obj,verb);     //Should strip out trailing defs.
     error:=line;
     getstack:=true;
+    memoStack.Lines.Clear;
+    memoStack.Lines.Add('Stack');
+    memoStack.Lines.Add(error);
+    memoStack.Lines.Add(obj+':'+verb+', line '+lno);
+    SetStackVisible(true);
     errorverb:='';
     if not SelectError(obj,verb,atol(lno)) then
     begin
@@ -1560,6 +1643,13 @@ begin
     re.OnSelectionChange:=Memo1SelectionChange;
     re.OnChange:=Memo1Change;
   end;
+end;
+
+procedure TfrmMoocoderMain.SetStackVisible(isVisible: Boolean);
+begin
+  memoStack.Visible:=isVisible;
+  splitter3.Visible:=isVisible;
+  if isVisible then splitter3.Left:=memoStack.Left-splitter3.Width;
 end;
 
 procedure TfrmMoocoderMain.SetSynColor(re:TRichEdit; color:TColor; lno,x,len:Integer);
