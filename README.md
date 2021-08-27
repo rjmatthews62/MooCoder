@@ -30,6 +30,10 @@ This also acts as a simple mush client.
  Project->New Verb : will do @verb for you and load the tab. (Take a few seconds currently)
  
  Basic syntax highlighting has been implemented.
+
+ Double-click on any error message or call stack message to open that verb.
+
+Ctrl+up and Ctrl+Down will scroll you through your command history.
  
 NOTE: Ansi codes are currently stripped by the @dump command. The "Get Verbs" mostly deals with this OK. It is something to be aware of.
  
@@ -39,6 +43,12 @@ NOTE: Ansi codes are currently stripped by the @dump command. The "Get Verbs" mo
  Multiple instances of verbs with the same name probably won't load correctly.
  
  Need to implement indenting properly.
+
+### Binary
+Windows binary can be found here: 
+http://www.mithril.com.au/moocoder.zip
+
+It is a single exe file. Unzip to anywhere and just run it.
  
  
 
