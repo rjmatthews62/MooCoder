@@ -15,7 +15,7 @@ This also acts as a simple mush client.
  Errors will be highlighted.
  You can also add a test command to test the results of your work.
  
- Runtime errors will be detected and the appropriate verb loaded, and the error line highlighted. You can also double-click on the stack trace in the debug window (you may have to scroll back a bit, it's a bit messy at present)
+ Runtime errors will be detected and the appropriate verb loaded, and the error line highlighted. A stack window will open, and you can double-click on the stack trace to view the calling code.
  
  The "Verbs" tab shows the currenly known verbs are listed. Double click to load and edit that verb.
  
@@ -25,7 +25,9 @@ This also acts as a simple mush client.
  
  Ctrl+G goes to a line number.
 
- Ctrl+R reload the current verb code from the server.
+ Ctrl+H works as a replace (BUT ITIS VERY PRIMITIVE AS YET, USE WITH CARE/
+
+ Ctrl+R reload the current verb code from the server. NOTE: Worth doing this after a successful compile as LambdaMOO does its own formatting, and the line nos may not now match what you have typed.
  
  Project->New Verb : will do @verb for you and load the tab. (Take a few seconds currently)
  
