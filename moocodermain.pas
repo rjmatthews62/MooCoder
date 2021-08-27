@@ -249,6 +249,7 @@ begin
   memoHistory.SelStart:=memoHistory.Perform(EM_LINEINDEX,lno,0);
   edit1.Text:=memoHistory.Lines[lno];
   edit1.SetFocus;
+  edit1.SelStart:=length(edit1.Text);
 end;
 
 procedure TfrmMoocoderMain.lvVerbsColumnClick(Sender: TObject;
@@ -669,6 +670,7 @@ begin
  if (connectcmd<>'') then
  begin
    msgqueue.Add(connectcmd);
+   OnExamineLine:=DoCheckTest; // Default is to look for error messages.
  end;
 end;
 
@@ -859,6 +861,7 @@ begin
   memoHistory.SelStart:=memoHistory.Perform(EM_LINEINDEX,lno,0);
   edit1.Text:=memoHistory.Lines[lno];
   edit1.SetFocus;
+  edit1.SelStart:=length(edit1.Text);
 end;
 
 procedure TfrmMoocoderMain.Stack1Click(Sender: TObject);
@@ -1081,6 +1084,8 @@ begin
   begin
     s1:=parseSepField(line,':');
     lno:=atol(copy(s1,5,255));
+    memoStack.Text:='Compile Error'+crlf+line;
+    SetStackVisible(true);
     CurrentEditor.Carety:=lno+1;
     CurrentEditor.CaretX:=1;
     n:=length(currenteditor.Lines[lno]);
@@ -1093,12 +1098,12 @@ begin
   end
   else if line='Verb not programmed.' then
   begin
-    OnExamineLine:=nil;
+    OnExamineLine:=DoCheckTest;
   end
   else if line='Verb programmed.' then
   begin
     adddebug('Compiled OK.');
-    OnExamineLine:=nil;
+    OnExamineLine:=DoCheckTest;
     SetChanged(CurrentEditor,false);
     e:=CurrentTest;
     if assigned(e) and (trim(e.Text)<>'') then
@@ -1108,7 +1113,8 @@ begin
       onExamineLine:=DoChecktest;
       getstack:=false;
       pages.ActivePage:=tbMain;
-    end;
+    end
+    else showmessage(line);
   end;
 end;
 
@@ -1168,7 +1174,7 @@ var t:TStringList; prog,s,obj,verb:String; i:Integer;
 begin
   if (line.Contains('***finished***')) then
   begin
-    OnExamineLine:=nil;
+    OnExamineLine:=DoChecktest;
     t:=TStringList.Create;
     try
       t.Text:=verbcollect;

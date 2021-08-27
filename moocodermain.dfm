@@ -135,8 +135,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     TabOrder = 1
     Visible = False
     OnDblClick = memoDebugDblClick
-    ExplicitLeft = 8
-    ExplicitTop = 310
   end
   object pages: TPageControl
     Left = 0
@@ -148,8 +146,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     MultiLine = True
     TabOrder = 2
     OnChange = pagesChange
-    ExplicitWidth = 943
-    ExplicitHeight = 379
     object tbMain: TTabSheet
       Caption = 'Main'
       Font.Charset = DEFAULT_CHARSET
@@ -158,8 +154,6 @@ object frmMoocoderMain: TfrmMoocoderMain
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
-      ExplicitWidth = 935
-      ExplicitHeight = 348
       object Memo1: TRichEdit
         Left = 0
         Top = 0
@@ -182,15 +176,11 @@ object frmMoocoderMain: TfrmMoocoderMain
         OnChange = Memo1Change
         OnDblClick = memoDebugDblClick
         OnSelectionChange = Memo1SelectionChange
-        ExplicitWidth = 935
-        ExplicitHeight = 348
       end
     end
     object tbVerbs: TTabSheet
       Caption = 'Verbs'
       ImageIndex = 1
-      ExplicitWidth = 935
-      ExplicitHeight = 348
       object lvVerbs: TListView
         Left = 0
         Top = 0
@@ -217,8 +207,6 @@ object frmMoocoderMain: TfrmMoocoderMain
         OnColumnClick = lvVerbsColumnClick
         OnCompare = lvVerbsCompare
         OnDblClick = lvVerbsDblClick
-        ExplicitWidth = 935
-        ExplicitHeight = 348
       end
     end
   end
@@ -250,7 +238,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Font.Style = []
     ParentFont = False
     TabOrder = 4
-    ExplicitTop = 416
+    WordWrap = False
   end
   object memoStack: TMemo
     Left = 600
