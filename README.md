@@ -1,5 +1,5 @@
 # MooCoder
-Tool for writing and debugging MooCode (for LambaMoo with the stunt/toast fork)
+Tool for writing and debugging MooCode (for LambdaMoo (specifically with the stunt/toast fork)
 
 This is written in Delphi 10.2, and is now using synedit for the editor, so you will need to use getit synedit to compile.
 
@@ -22,14 +22,16 @@ This also acts as a simple mush client.
  Ctrl+N will allow you to manually enter a verb definition to load.
  
  Ctrl+F works as Find.
+
+ Shift+Ctrl+F will try to find a verb in an open tab (and also bring it to the front of the tab list).
  
  Ctrl+G goes to a line number.
 
- Ctrl+H works as a replace (BUT ITIS VERY PRIMITIVE AS YET, USE WITH CARE/
+ Ctrl+H works as a replace (BUT IT IS VERY PRIMITIVE AS YET, USE WITH CARE!)
 
  Ctrl+R reload the current verb code from the server. NOTE: Worth doing this after a successful compile as LambdaMOO does its own formatting, and the line nos may not now match what you have typed.
  
- Project->New Verb : will do @verb for you and load the tab. (Take a few seconds currently)
+ Project->New Verb : will do @verb for you and load the tab. (Takes a few seconds currently)
  
  Basic syntax highlighting has been implemented.
 
