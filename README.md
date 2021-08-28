@@ -1,5 +1,5 @@
 # MooCoder
-Tool for writing and debugging MooCode (for LambdaMoo (specifically with the stunt/toast fork)
+Tool for writing and debugging MooCode (for LambdaMoo - specifically with the stunt/toast fork, but should work on others.)
 
 This is written in Delphi 10.2, and is now using synedit for the editor, so you will need to use getit synedit to compile.
 
