@@ -54,5 +54,6 @@ http://www.mithril.com.au/moocoder.zip
 
 It is a single exe file. Unzip to anywhere and just run it.
  
- 
+### Release Notes ###
+1.1.0.0 - Improved escaped string display, fixed find to work in main window, stated work on propert text editor. 
 

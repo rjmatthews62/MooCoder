@@ -66,6 +66,9 @@ type
     NextCommand1: TMenuItem;
     memoStack: TMemo;
     Splitter3: TSplitter;
+    Edit2: TMenuItem;
+    Property1: TMenuItem;
+    oggleView1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -103,6 +106,9 @@ type
     procedure LastCommand1Click(Sender: TObject);
     procedure NextCommand1Click(Sender: TObject);
     procedure Stack1Click(Sender: TObject);
+    procedure Property1Click(Sender: TObject);
+    procedure oggleView1Click(Sender: TObject);
+    procedure tbMainShow(Sender: TObject);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -115,6 +121,8 @@ type
     replall:Boolean;
     findcase:Boolean;
     moosyn:TSynMooCodeSyn;
+    propertyName:String;
+    propertyValue:String;
     procedure ProcessEscape(cmd: String);
     procedure ResetStyle;
     procedure SetBackColor(re: TRichEdit; acolor: TColor);
@@ -147,6 +155,8 @@ type
     function IsAnyModified: Boolean;
     procedure AddHistory(msg: String);
     procedure SetStackVisible(isVisible:Boolean);
+    function parseList(mylist: String):String;
+    function parseMap(mymap: String): String;
     { Private declarations }
   public
     { Public declarations }
@@ -194,6 +204,7 @@ type
     procedure DoCheckTest(sender:TObject; line:String);
     procedure DoCheckVerb(sender:TObject; line:String);
     procedure DoCheckVerbs(sender:TObject; line:String);
+    procedure DoCheckProperty(sender:TObject; line:String);
     property LineNo:Integer read GetLineNo write SetLineNo;
   end;
 
@@ -640,6 +651,7 @@ end;
 procedure TfrmMoocoderMain.btnCompileClick(Sender: TObject);
 var cmd:String; e:TEdit;
 begin
+  if (pages.ActivePage.tag<1) then exit;
   cmd:=replacestr(CurrentEditor.Text,crlf,lf);
   SendBulk(cmd+lf);
   OnExamineLine:=DoCheckCompile;
@@ -724,6 +736,7 @@ begin
   msgqueue:=TStringList.Create;
   ckConnect.Checked:=client.Active;
   dumpobject:=ifile.ReadString('Settings','LastDump','');
+  propertyName:=ifile.ReadString('Settings','LastProperty','');
   verblist:=TStringList.Create;
   verblist.Sorted:=true;
   verblist.Duplicates:=dupIgnore;
@@ -743,6 +756,7 @@ end;
 procedure TfrmMoocoderMain.FormDestroy(Sender: TObject);
 begin
   ifile.WriteString('Settings','LastDump',dumpobject);
+  ifile.WriteString('Settings','LastProperty',propertyname);
   freeandnil(ifile);
   freeandnil(msgqueue);
   freeandnil(verblist);
@@ -864,6 +878,15 @@ begin
   edit1.SelStart:=length(edit1.Text);
 end;
 
+procedure TfrmMoocoderMain.oggleView1Click(Sender: TObject);
+begin
+  if (pages.ActivePage=tbMain) and (testtab<>nil) then
+  begin
+    pages.ActivePage:=testtab;
+  end
+  else pages.ActivePage:=tbMain;
+end;
+
 procedure TfrmMoocoderMain.Stack1Click(Sender: TObject);
 begin
   SetStackVisible(not(memoStack.Visible));
@@ -958,17 +981,31 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoFind;
-var ret:Integer;
+var ret:Integer; e:TSynEdit; m:TCustomMemo; s:String; ix:Integer;
 begin
-  if not(assigned(CurrentEditor.SearchEngine)) then
+  if (CurrentEditor<>nil) then
   begin
-    CurrentEditor.SearchEngine:=SynEditSearch1;
-  end;
-  ret:=CurrentEditor.SearchReplace(findstr,findstr,[]);
-  if (ret<=0) then
+    if not(assigned(CurrentEditor.SearchEngine)) then
+    begin
+      CurrentEditor.SearchEngine:=SynEditSearch1;
+    end;
+    ret:=CurrentEditor.SearchReplace(findstr,findstr,[]);
+    if (ret<=0) then
+    begin
+      CurrentEditor.SelStart:=0;
+      CurrentEditor.SearchReplace(findstr,findstr,[]);
+    end;
+  end
+  else if pages.ActivePage=tbMain then
   begin
-    CurrentEditor.SelStart:=0;
-    CurrentEditor.SearchReplace(findstr,findstr,[]);
+    s:=lowercase(replaceStr(memo1.Lines.text,crlf,lf));
+    ix:=PosEx(lowercase(findstr),s,memo1.selstart+2);
+    if (ix<1) then ix:=Pos(lowercase(findstr),s);
+    if (ix>0) then
+    begin
+      memo1.SelStart:=ix-1;
+      memo1.SelLength:=length(findstr);
+    end;
   end;
 end;
 
@@ -1172,7 +1209,7 @@ end;
 procedure TfrmMoocoderMain.DoCheckVerb(sender: TObject; line: String);
 var t:TStringList; prog,s,obj,verb:String; i:Integer;
 begin
-  if (line.Contains('***finished***')) then
+  if (line='***finished***') then
   begin
     OnExamineLine:=DoChecktest;
     t:=TStringList.Create;
@@ -1362,6 +1399,102 @@ begin
   UpdateVerbs;
 end;
 
+procedure TfrmMoocoderMain.DoCheckProperty(sender: TObject; line: String);
+var tb:TTabSheet; ptype:Integer;
+begin
+//#-1:Input to EVAL (this == #-1), line 3:  Property not found:
+  if line.StartsWith('=> ') then
+  begin
+    propertyValue:=copy(line,4,length(line));
+    OnExamineLine:=DoCheckTest;
+    ptype:=2;
+    if propertyValue.StartsWith('{') then
+    begin
+      propertyValue:=parseList(propertyValue);
+      ptype:=3;
+    end
+    else if propertyName.StartsWith('[') then
+    begin
+      propertyValue:=parseMap(propertyValue);
+      ptype:=4;
+    end;
+    tb:=AddTab(propertyname,propertyvalue,ptype);
+    pages.ActivePage:=tb;
+  end;
+end;
+
+function TfrmMoocoderMain.parseList(mylist:String):String;
+var t:TStringList; nested:Integer; c:Char; s:String; quoted,escaped:Boolean;
+begin
+  nested:=0;
+  quoted:=false;
+  escaped:=false;
+  s:='';
+  t:=TStringList.Create;
+  try
+    for c in mylist do
+    begin
+      if (c='{') then inc(nested)
+      else if (c='}') then
+      begin
+        dec(nested);
+        if (nested<1) then break;
+      end
+      else if (c=',') and not(quoted) and (nested=1) then
+      begin
+        t.Add(trim(s));
+        s:='';
+      end
+      else
+      begin
+        s:=s+c;
+        if (c='"') and not(escaped) then quoted:=not(quoted);
+        if (c='\') then escaped:=true else escaped:=false;
+      end;
+    end;
+    if (s<>'') then t.Add(trim(s));
+    result:=t.Text;
+  finally
+    t.Free;
+  end;
+end;
+
+function TfrmMoocoderMain.parseMap(mymap:String):String;
+var t:TStringList; nested:Integer; c:Char; s:String; quoted,escaped:Boolean;
+begin
+  nested:=0;
+  quoted:=false;
+  escaped:=false;
+  s:='';
+  t:=TStringList.Create;
+  try
+    for c in mymap do
+    begin
+      if (c='[') then inc(nested)
+      else if (c=']') then
+      begin
+        dec(nested);
+        if (nested<1) then break;
+      end
+      else if (c=',') and not(quoted) and (nested=1) then
+      begin
+        t.Add(trim(s));
+        s:='';
+      end
+      else
+      begin
+        s:=s+c;
+        if (c='"') and not(escaped) then quoted:=not(quoted);
+        if (c='\') then escaped:=true else escaped:=false;
+      end;
+    end;
+    if (s<>'') then t.Add(trim(s));
+    result:=t.Text;
+  finally
+    t.Free;
+  end;
+end;
+
 procedure TfrmMoocoderMain.UpdateVerbs;
 var nd:TListItem; s:String; obj,verb:String;
     oldverb,oldobj:String; i:Integer;
@@ -1502,6 +1635,23 @@ begin
   obj:=parsesepfield(s,':');
   verb:=parse(s);
   verblist.Add(obj+':'+verb);
+end;
+
+procedure TfrmMoocoderMain.Property1Click(Sender: TObject);
+var s:String;
+begin
+  s:=PropertyName;
+  if inputquery('Edit Property','Enter object.property',s) then
+  begin
+    if pos('.',s)<1 then
+    begin
+      showmessage('Invalid format.');
+      exit;
+    end;
+    SendBulk(';'+s+lf);
+    PropertyName:=s;
+    OnExamineLine:=DoCheckProperty;
+  end;
 end;
 
 function TfrmMoocoderMain.AddTab(caption,txt:String; iscode:Integer):TTabsheet;
@@ -1649,6 +1799,11 @@ begin
     re.OnSelectionChange:=Memo1SelectionChange;
     re.OnChange:=Memo1Change;
   end;
+end;
+
+procedure TfrmMoocoderMain.tbMainShow(Sender: TObject);
+begin
+  edit1.SetFocus;
 end;
 
 procedure TfrmMoocoderMain.SetStackVisible(isVisible: Boolean);

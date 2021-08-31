@@ -16,13 +16,13 @@ uses
 
 type
   TtkTokenKind = (tkComment, tkIdentifier, tkKey, tkNull, tkNumber,
-    tkPreprocessor, tkSpace, tkString, tkSymbol, tkVerb, tkProperty, tkList, tkUnknown);
+    tkPreprocessor, tkSpace, tkString, tkSymbol, tkVerb, tkProperty, tkList, tkUnknown,tkEscaped);
 
   TCommentStyle = (csAnsiStyle, csPasStyle, csCStyle, csAsmStyle, csBasStyle,
     csCPPStyle);
   TCommentStyles = set of TCommentStyle;
 
-  TRangeState = (rsANil, rsAnsi, rsPasStyle, rsCStyle, rsUnKnown);
+  TRangeState = (rsANil, rsAnsi, rsPasStyle, rsCStyle, rsUnKnown,rsEscaped,rsString);
 
   TStringDelim = (sdSingleQuote, sdDoubleQuote, sdSingleAndDoubleQuote);
 
@@ -55,6 +55,7 @@ type
     fVerbAttr:TSynHighlighterAttributes;
     fPropAttr:TSynHighlighterAttributes;
     fListAttr:TSynHighlighterAttributes;
+    fEscapedAttr:TSynHighlighterAttributes;
     procedure AsciiCharProc;
     procedure BraceOpenProc;
     procedure PointCommaProc;
@@ -81,6 +82,7 @@ type
     function StoreIdentChars : Boolean;
     procedure SetDetectPreprocessor(Value: boolean);
     procedure PropertyProc;
+    procedure EscapedProc;
   public
     class function GetLanguageName: string; override;
     class function GetFriendlyLanguageName: string; override;
@@ -216,6 +218,8 @@ begin
   fListAttr:=TSynHighlighterAttributes.Create('List','List');
   fListAttr.Foreground:=clWebCyan;
   fListAttr.Style:=[fsBold];
+  fEscapedAttr:=TSynHighlighterAttributes.Create('Escaped','Escaped');
+  fEscapedAttr.Foreground:=clWebOrange;
   fStringDelim := sdSingleQuote;
   fIdentChars := cDefaultIdentChars;
   fRange := rsUnknown;
@@ -522,18 +526,41 @@ var
    delim : WideChar;
 begin
   fTokenID := tkString;
-  if IsStringDelim(fLine[Run + 1]) and IsStringDelim(fLine[Run + 2]) then
-    Inc(Run, 2);
+  if fRange=rsString then
+  begin
+    if IsStringDelim(fLine[Run + 1]) and IsStringDelim(fLine[Run + 2]) then
+      Inc(Run, 2);
+  end;
+  fRange:=rsUnknown;
   delim:=fLine[Run];
   repeat
     case FLine[Run] of
       #0 :  break;
-      '\': inc(run); // Escaped.
+      '\': begin
+             fRange:=rsEscaped;
+             dec(run);
+             break;
+           end;
       #10, #13: if not StringMultiLine then break;
     end;
     inc(Run);
   until FLine[Run] = delim;
   if FLine[Run] <> #0 then inc(Run);
+end;
+
+procedure TSynMooCodeSyn.EscapedProc;
+var count:Integer;
+begin
+  fTokenId:=tkEscaped;
+  fRange:=rsString;
+  count:=0;
+  while (count<2) and (FLine[Run]<>#0) do
+  begin
+    inc(run);
+    inc(count);
+  end;
+  if FLine[run]=#0 then frange:=rsUnknown
+  else fRange:=rsString;
 end;
 
 procedure TSynMooCodeSyn.UnknownProc;
@@ -565,6 +592,8 @@ begin
     rsAnsi: AnsiProc;
     rsPasStyle: PasStyleProc;
     rsCStyle: CStyleProc;
+    rsString: StringProc;
+    rsEscaped: EscapedProc;
   else
     if IsStringDelim(fLine[Run]) then
       StringProc
@@ -655,6 +684,7 @@ begin
     tkVerb: result:= fVerbAttr;
     tkProperty: result:= fPropAttr;
     tkList: result:=fListAttr;
+    tkEscaped: result:=fEscapedAttr;
   else
     Result := nil;
   end;

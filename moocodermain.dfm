@@ -154,6 +154,7 @@ object frmMoocoderMain: TfrmMoocoderMain
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
+      OnShow = tbMainShow
       object Memo1: TRichEdit
         Left = 0
         Top = 0
@@ -320,6 +321,12 @@ object frmMoocoderMain: TfrmMoocoderMain
       ShortCut = 16424
       OnClick = NextCommand1Click
     end
+    object oggleView1: TMenuItem
+      Caption = 'Toggle View'
+      Hint = 'Swap between main view and last compile.'
+      ShortCut = 24660
+      OnClick = oggleView1Click
+    end
   end
   object ApplicationEvents1: TApplicationEvents
     Left = 716
@@ -344,6 +351,13 @@ object frmMoocoderMain: TfrmMoocoderMain
       end
       object Clear1: TMenuItem
         Action = actClear
+      end
+    end
+    object Edit2: TMenuItem
+      Caption = '&Edit'
+      object Property1: TMenuItem
+        Caption = '&Property'
+        OnClick = Property1Click
       end
     end
     object Settings1: TMenuItem
