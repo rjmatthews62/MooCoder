@@ -141,7 +141,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Top = 0
     Width = 597
     Height = 313
-    ActivePage = tbMain
+    ActivePage = tbVerbs
     Align = alClient
     MultiLine = True
     TabOrder = 2
@@ -197,6 +197,9 @@ object frmMoocoderMain: TfrmMoocoderMain
           end
           item
             Caption = 'Verb'
+          end
+          item
+            Caption = 'Args'
           end
           item
             AutoSize = True
@@ -356,7 +359,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     object Edit2: TMenuItem
       Caption = '&Edit'
       object Property1: TMenuItem
-        Caption = '&Property'
+        Caption = '&Text List'
         OnClick = Property1Click
       end
     end

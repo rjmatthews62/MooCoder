@@ -138,7 +138,7 @@ type
     procedure SyntaxHighlight(re: TRichEdit; lno: Integer);
     procedure SetSynColor(re: TRichEdit; color: TColor; lno, x, len: Integer);
     function IsInList(aword: String; const words: array of String): Boolean;
-    procedure ProcessVerb(t: TStrings);
+    procedure ProcessVerb(t:TStrings; args:String='');
     procedure UpdateVerbs;
     procedure DoCheckName(sender: TObject; line: String);
     function FindVerbEditor(obj,verb:String): TSynEdit;
@@ -156,7 +156,8 @@ type
     procedure AddHistory(msg: String);
     procedure SetStackVisible(isVisible:Boolean);
     function parseList(mylist: String):String;
-    function parseMap(mymap: String): String;
+    function EncodeStr(s: String): String;
+    procedure FetchProperty(propname: String);
     { Private declarations }
   public
     { Public declarations }
@@ -190,6 +191,7 @@ type
     verbcollect:String;
     verblist:TStringList;
     namelist:TStringList;
+    arglist:TStringList;
     whenfinished:TThreadProcedure;
     sortby:Integer;
     oldDebug:Integer;
@@ -205,6 +207,7 @@ type
     procedure DoCheckVerb(sender:TObject; line:String);
     procedure DoCheckVerbs(sender:TObject; line:String);
     procedure DoCheckProperty(sender:TObject; line:String);
+    procedure DoCheckUpdate(sender:TObject; line:String);
     property LineNo:Integer read GetLineNo write SetLineNo;
   end;
 
@@ -516,15 +519,25 @@ begin
 end;
 
 procedure TfrmMoocoderMain.Refresh1Click(Sender: TObject);
-var re:TSynEdit; obj,verb,s:String;
+var re:TSynEdit; obj,verb,s:String; iscode:Integer;
 begin
   re:=CurrentEditor;
   if (re=nil) or (re.Parent.Tag<1) then exit;
-  if (re.Lines.Count<1) then exit;
-  s:=re.Lines[0];
-  if ParseVerb(s,obj,verb) then
+  iscode:=re.Parent.Tag;
+  if (iscode=1) then
   begin
-    FetchVerb(obj,verb);
+    if (re.Lines.Count<1) then exit;
+    s:=re.Lines[0];
+    if ParseVerb(s,obj,verb) then
+    begin
+      FetchVerb(obj,verb);
+    end;
+  end
+  else if (iscode in [2,3]) then
+  begin
+    s:=pages.ActivePage.Caption;
+    if (s.EndsWith('*')) then delete(s,length(s),1);
+    FetchProperty(s);
   end;
 end;
 
@@ -649,12 +662,45 @@ begin
 end;
 
 procedure TfrmMoocoderMain.btnCompileClick(Sender: TObject);
-var cmd:String; e:TEdit;
+var cmd:String; e:TEdit; iscode:Integer; s:String; t:TStrings; i:Integer;
 begin
-  if (pages.ActivePage.tag<1) then exit;
-  cmd:=replacestr(CurrentEditor.Text,crlf,lf);
-  SendBulk(cmd+lf);
-  OnExamineLine:=DoCheckCompile;
+  iscode:=pages.ActivePage.tag;
+  if (iscode<1) then exit;
+  if iscode=1 then // Program verb
+  begin
+    cmd:=replacestr(CurrentEditor.Text,crlf,lf);
+    SendBulk(cmd+lf);
+    OnExamineLine:=DoCheckCompile;
+  end
+  else if isCode in [2,3] then //List,Text
+  begin
+    cmd:=pages.ActivePage.Caption;
+    if cmd.EndsWith('*') then delete(cmd,length(cmd),1);
+    t:=CurrentEditor.Lines;
+    if (t.Count<1) then
+    begin
+      MessageDlg('Empty property.',mtError,[mbCancel],0);
+      exit;
+    end;
+    cmd:=';'+cmd+'=';
+    if (iscode=3) then // Treat as list.
+    begin
+      cmd:=cmd+'{';
+      for i:=0 to t.Count-1 do
+      begin
+        s:=EncodeStr(t[i]);
+        if (i>0) then cmd:=cmd+',';
+        cmd:=cmd+'"'+s+'"';
+      end;
+      cmd:=cmd+'}';
+    end
+    else
+    begin
+      cmd:=cmd+'"'+EncodeStr(t[0])+'"';
+    end;
+    SendBulk(cmd+lf);
+    OnExamineLine:=DoCheckUpdate;
+  end;
   e:=CurrentTest;
   if assigned(e) then
   begin
@@ -741,6 +787,7 @@ begin
   verblist.Sorted:=true;
   verblist.Duplicates:=dupIgnore;
   namelist:=TStringList.Create;
+  arglist:=TStringList.Create;
   whenfinished:=procedure begin doConnection; end;
   pages.ActivePage:=tbMain;
   moosyn:=TSynMooCodeSyn.Create(self);
@@ -761,6 +808,7 @@ begin
   freeandnil(msgqueue);
   freeandnil(verblist);
   freeandnil(namelist);
+  freeandnil(arglist);
 end;
 
 function TfrmMoocoderMain.GetLineNo: Integer;
@@ -1194,6 +1242,37 @@ begin
   end;
 end;
 
+function TfrmMooCoderMain.EncodeStr(s:String):String;
+begin
+  result:=ReplaceStr(s,'\','\\');
+  result:=ReplaceStr(result,'"','\"');
+end;
+procedure TfrmMoocoderMain.DoCheckUpdate(sender: TObject; line: String);
+var e:TEdit;
+begin
+  OnExamineLine:=DoCheckTest;
+  if line.StartsWith('=>') then
+  begin
+    SetChanged(CurrentEditor,false);
+    e:=CurrentTest;
+    if assigned(e) and (trim(e.Text)<>'') then
+    begin
+      msgqueue.add(e.Text);
+      testtab:=pages.ActivePage;
+      getstack:=false;
+      pages.ActivePage:=tbMain;
+    end
+    else
+    begin
+      ShowMessage('Updated.');
+    end;
+  end
+  else
+  begin
+    ShowMessage(line);
+  end;
+end;
+
 function TfrmMoocoderMain.parseVerb(value:String; var obj,verb:String):Boolean;
 var i:Integer;
 begin
@@ -1207,7 +1286,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoCheckVerb(sender: TObject; line: String);
-var t:TStringList; prog,s,obj,verb:String; i:Integer;
+var t:TStringList; prog,s,obj,verb,args:String; i:Integer;
 begin
   if (line='***finished***') then
   begin
@@ -1231,6 +1310,11 @@ begin
         end;
       end;
       obj:=parsesepfield(prog,':');
+      args:=prog;
+      if (args.StartsWith('"')) then
+      begin
+        args:=trim(ReplaceStr(args,'"',''));
+      end;
       verb:=parse(prog);
       if (verb.StartsWith('"')) then verb:=GetSepField(verb,2,'"');
       i:=pos('*',verb);
@@ -1249,6 +1333,7 @@ begin
       end;
       lastlno:=0;
       CheckName(obj);
+      arglist.values[obj+':'+verb]:=args;
       verblist.Add(obj+':'+verb);
       UpdateVerbs;
     finally
@@ -1400,7 +1485,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.DoCheckProperty(sender: TObject; line: String);
-var tb:TTabSheet; ptype:Integer;
+var tb:TTabSheet; ptype:Integer; s:String; i:Integer; t:TStringList;
 begin
 //#-1:Input to EVAL (this == #-1), line 3:  Property not found:
   if line.StartsWith('=> ') then
@@ -1415,11 +1500,32 @@ begin
     end
     else if propertyName.StartsWith('[') then
     begin
-      propertyValue:=parseMap(propertyValue);
-      ptype:=4;
+      MessageDlg('Can''t handle maps yet.',mtError,[mbCancel],0);
+      exit;
     end;
-    tb:=AddTab(propertyname,propertyvalue,ptype);
-    pages.ActivePage:=tb;
+    t:=TStringList.Create;
+    try
+      t.Text:=PropertyValue;
+      if (t.Count>1) and (trim(t[t.Count-1])='') then t.Delete(t.Count-1); //Remove trailing line
+      for i:=2 to pages.PageCount-1 do
+      begin
+        tb:=pages.Pages[i];
+        s:=tb.Caption;
+        if s.endswith('*') then delete(s,length(s),1);
+        if AnsiSameText(s,propertyname) then
+        begin
+          pages.ActivePage:=tb;
+          CurrentEditor.lines.Assign(t);
+          tb.Tag:=ptype;
+          exit;
+        end;
+      end;
+      tb:=AddTab(propertyname,t.text,ptype);
+      pages.ActivePage:=tb;
+      ActCompile.Enabled:=true;
+    finally
+      t.Free;
+    end;
   end;
 end;
 
@@ -1442,6 +1548,9 @@ begin
       end
       else if (c=',') and not(quoted) and (nested=1) then
       begin
+        s:=trim(s);
+        if (s.StartsWith('"')) then delete(s,1,1);
+        if (s.EndsWith('"')) then delete(s,length(s),1);
         t.Add(trim(s));
         s:='';
       end
@@ -1452,42 +1561,9 @@ begin
         if (c='\') then escaped:=true else escaped:=false;
       end;
     end;
-    if (s<>'') then t.Add(trim(s));
-    result:=t.Text;
-  finally
-    t.Free;
-  end;
-end;
-
-function TfrmMoocoderMain.parseMap(mymap:String):String;
-var t:TStringList; nested:Integer; c:Char; s:String; quoted,escaped:Boolean;
-begin
-  nested:=0;
-  quoted:=false;
-  escaped:=false;
-  s:='';
-  t:=TStringList.Create;
-  try
-    for c in mymap do
-    begin
-      if (c='[') then inc(nested)
-      else if (c=']') then
-      begin
-        dec(nested);
-        if (nested<1) then break;
-      end
-      else if (c=',') and not(quoted) and (nested=1) then
-      begin
-        t.Add(trim(s));
-        s:='';
-      end
-      else
-      begin
-        s:=s+c;
-        if (c='"') and not(escaped) then quoted:=not(quoted);
-        if (c='\') then escaped:=true else escaped:=false;
-      end;
-    end;
+    s:=trim(s);
+    if (s.StartsWith('"')) then delete(s,1,1);
+    if (s.EndsWith('"')) then delete(s,length(s),1);
     if (s<>'') then t.Add(trim(s));
     result:=t.Text;
   finally
@@ -1517,6 +1593,7 @@ begin
       nd.Caption:=obj;
       nd.SubItems.Add(namelist.Values[obj]); // Name
       nd.SubItems.Add(verb);
+      nd.SubItems.Add(arglist.Values[s]);
       nd.SubItems.Add(FindVerbHelp(obj,verb));
     end;
     FitListContents(lvVerbs);
@@ -1587,7 +1664,7 @@ begin
 end;
 
 procedure TfrmMoocoderMain.ProcessDump;
-var t,t1:TStringList; s:String; cap:Boolean; prog,obj:String;
+var t,t1:TStringList; s:String; cap:Boolean; prog,obj:String; args:String;
 begin
   addln('Capture complete.');
   capture:=false;
@@ -1598,6 +1675,7 @@ begin
   cap:=false;
   for s in t do
   begin
+    if (AnsiStartsText('@args',s)) then args:=s;
     if not(cap) and AnsiStartsText('@program',s) then
     begin
       t1.Clear;
@@ -1610,7 +1688,7 @@ begin
       if (s='.') then
       begin
         cap:=false;
-        ProcessVerb(t1);
+        ProcessVerb(t1,args);
       end;
     end;
   end;
@@ -1625,7 +1703,7 @@ begin
   UpdateVerbs;
 end;
 
-procedure TfrmMoocoderMain.ProcessVerb(t:TStrings);
+procedure TfrmMoocoderMain.ProcessVerb(t:TStrings; args:String='');
 var prog,obj,verb:String; s:String;
 begin
   prog:=t[0];
@@ -1635,6 +1713,12 @@ begin
   obj:=parsesepfield(s,':');
   verb:=parse(s);
   verblist.Add(obj+':'+verb);
+  if (args<>'') then
+  begin
+    if (args.StartsWith('@args',true)) then parse(args);
+    if (args.StartsWith('#')) then parseSepField(args,':');
+    arglist.values[obj+':'+verb]:=trim(replacestr(args,'"',''));
+  end;
 end;
 
 procedure TfrmMoocoderMain.Property1Click(Sender: TObject);
@@ -1648,10 +1732,15 @@ begin
       showmessage('Invalid format.');
       exit;
     end;
-    SendBulk(';'+s+lf);
-    PropertyName:=s;
-    OnExamineLine:=DoCheckProperty;
+    FetchProperty(s);
   end;
+end;
+
+procedure TFrmMooCoderMain.FetchProperty(propname:String);
+begin
+  SendBulk(';'+propname+lf);
+  PropertyName:=propname;
+  OnExamineLine:=DoCheckProperty;
 end;
 
 function TfrmMoocoderMain.AddTab(caption,txt:String; iscode:Integer):TTabsheet;
@@ -1680,7 +1769,8 @@ begin
   edit.ScrollBars:=ssBoth;
   edit.HideSelection:=false;
   edit.OnChange:=Memo1Change;
-  edit.Highlighter:=moosyn;
+  if (iscode=1) then edit.Highlighter:=moosyn
+  else edit.Highlighter:=nil;
   edit.RightEdge:=0;
   edit.Gutter.ShowLineNumbers:=true;
   edit.Gutter.LineNumberStart:=0;
