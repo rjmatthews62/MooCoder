@@ -370,16 +370,17 @@ begin
 end;
 
 procedure TfrmMoocoderMain.SetBackColor(re:TRichEdit; acolor:TColor);
-var format:TCharFormat2;
+var
+  Format: CHARFORMAT2;
 begin
-// Does NOT work, I don't know why.
-  fillchar(format,sizeof(format),0);
-  format.cbSize:=sizeof(format);
-  SendGetStructMessage(re.Handle, EM_GETCHARFORMAT,WPARAM(SCF_SELECTION), Format, True);
-  format.dwMask:= CFM_BACKCOLOR; //format.dwMask or CFM_BACKCOLOR;
-  format.crBackColor:=ColorToRgb(acolor);
-  re.Perform(EM_SETCHARFORMAT,SCF_SELECTION,longint(@format));
-end;
+  FillChar(Format, SizeOf(Format), 0);
+  with Format do
+  begin
+    cbSize := SizeOf(Format);
+    dwMask := CFM_BACKCOLOR;
+    crBackColor := colorTorgb(acolor);
+    re.Perform(EM_SETCHARFORMAT, SCF_SELECTION, Longint(@Format));
+  end;end;
 
 procedure TfrmMoocoderMain.actClearExecute(Sender: TObject);
 var i:Integer; tb:TTabsheet;

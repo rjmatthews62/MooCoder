@@ -57,7 +57,9 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
-1.3.0 0 - Added support for rgb and x256 colors. Fixed "find" function on main window.
+1.3.1.0 - Got background color working.
+
+1.3.0.0 - Added support for rgb and x256 colors. Fixed "find" function on main window.
 
 1.2.0.0 - Added Property Text Editor (Edit->Text Property), shows args in verbs
 
