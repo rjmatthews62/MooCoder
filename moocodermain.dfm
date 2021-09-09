@@ -141,7 +141,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Top = 0
     Width = 597
     Height = 313
-    ActivePage = tbVerbs
+    ActivePage = tbMain
     Align = alClient
     MultiLine = True
     TabOrder = 2
@@ -166,6 +166,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         Font.Color = clWhite
         Font.Height = -16
         Font.Name = 'Courier'
+        Font.Pitch = fpFixed
         Font.Style = []
         HideSelection = False
         Lines.Strings = (
@@ -173,6 +174,7 @@ object frmMoocoderMain: TfrmMoocoderMain
         ParentFont = False
         ScrollBars = ssVertical
         TabOrder = 0
+        StyleElements = [seClient, seBorder]
         Zoom = 100
         OnChange = Memo1Change
         OnDblClick = memoDebugDblClick

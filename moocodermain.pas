@@ -241,6 +241,24 @@ const
   cr=#13;
   crlf=cr+lf;
 
+  ColorX256:Array[0..255] of TColor =
+  ($000000, $000080, $008000, $008080, $800000, $800080, $808000, $c0c0c0, $808080, $0000ff, $00ff00, $00ffff, $ff0000, $ff00ff, $ffff00, $ffffff,
+$000000, $5f0000, $870000, $af0000, $d70000, $ff0000, $005f00, $5f5f00, $875f00, $af5f00, $d75f00, $ff5f00, $008700, $5f8700, $878700, $af8700,
+$d78700, $ff8700, $00af00, $5faf00, $87af00, $afaf00, $d7af00, $ffaf00, $00d700, $5fd700, $87d700, $afd700, $d7d700, $ffd700, $00ff00, $5fff00,
+$87ff00, $afff00, $d7ff00, $ffff00, $00005f, $5f005f, $87005f, $af005f, $d7005f, $ff005f, $005f5f, $5f5f5f, $875f5f, $af5f5f, $d75f5f, $ff5f5f,
+$00875f, $5f875f, $87875f, $af875f, $d7875f, $ff875f, $00af5f, $5faf5f, $87af5f, $afaf5f, $d7af5f, $ffaf5f, $00d75f, $5fd75f, $87d75f, $afd75f,
+$d7d75f, $ffd75f, $00ff5f, $5fff5f, $87ff5f, $afff5f, $d7ff5f, $ffff5f, $000087, $5f0087, $870087, $af0087, $d70087, $ff0087, $005f87, $5f5f87,
+$875f87, $af5f87, $d75f87, $ff5f87, $008787, $5f8787, $878787, $af8787, $d78787, $ff8787, $00af87, $5faf87, $87af87, $afaf87, $d7af87, $ffaf87,
+$00d787, $5fd787, $87d787, $afd787, $d7d787, $ffd787, $00ff87, $5fff87, $87ff87, $afff87, $d7ff87, $ffff87, $0000af, $5f00af, $8700af, $af00af,
+$d700af, $ff00af, $005faf, $5f5faf, $875faf, $af5faf, $d75faf, $ff5faf, $0087af, $5f87af, $8787af, $af87af, $d787af, $ff87af, $00afaf, $5fafaf,
+$87afaf, $afafaf, $d7afaf, $ffafaf, $00d7af, $5fd7af, $87d7af, $afd7af, $d7d7af, $ffd7af, $00ffaf, $5fffaf, $87ffaf, $afffaf, $d7ffaf, $ffffaf,
+$0000d7, $5f00d7, $8700d7, $af00d7, $d700d7, $ff00d7, $005fd7, $5f5fd7, $875fd7, $af5fd7, $d75fd7, $ff5fd7, $0087d7, $5f87d7, $8787d7, $af87d7,
+$d787d7, $ff87d7, $00afd7, $5fafd7, $87afd7, $afafd7, $d7afd7, $ffafd7, $00d7d7, $5fd7d7, $87d7d7, $afd7d7, $d7d7d7, $ffd7d7, $00ffd7, $5fffd7,
+$87ffd7, $afffd7, $d7ffd7, $ffffd7, $0000ff, $5f00ff, $8700ff, $af00ff, $d700ff, $ff00ff, $005fff, $5f5fff, $875fff, $af5fff, $d75fff, $ff5fff,
+$0087ff, $5f87ff, $8787ff, $af87ff, $d787ff, $ff87ff, $00afff, $5fafff, $87afff, $afafff, $d7afff, $ffafff, $00d7ff, $5fd7ff, $87d7ff, $afd7ff,
+$d7d7ff, $ffd7ff, $00ffff, $5fffff, $87ffff, $afffff, $d7ffff, $ffffff, $080808, $121212, $1c1c1c, $262626, $303030, $3a3a3a, $444444, $4e4e4e,
+$585858, $626262, $6c6c6c, $767676, $808080, $8a8a8a, $949494, $9e9e9e, $a8a8a8, $b2b2b2, $bcbcbc, $c6c6c6, $d0d0d0, $dadada, $e4e4e4, $eeeeee);
+
   keywords:Array[1..12] of String = ('if','then','else','elseif','for','while','endfor','endwhile','endif',
            'try','except','endtry');
 
@@ -354,12 +372,13 @@ end;
 procedure TfrmMoocoderMain.SetBackColor(re:TRichEdit; acolor:TColor);
 var format:TCharFormat2;
 begin
+// Does NOT work, I don't know why.
   fillchar(format,sizeof(format),0);
   format.cbSize:=sizeof(format);
   SendGetStructMessage(re.Handle, EM_GETCHARFORMAT,WPARAM(SCF_SELECTION), Format, True);
-  format.dwMask:=format.dwMask or CFM_BACKCOLOR;
-  format.crBackColor:=acolor;
-  re.Perform(EM_SETCHARFORMAT,SCF_SELECTION,@format);
+  format.dwMask:= CFM_BACKCOLOR; //format.dwMask or CFM_BACKCOLOR;
+  format.crBackColor:=ColorToRgb(acolor);
+  re.Perform(EM_SETCHARFORMAT,SCF_SELECTION,longint(@format));
 end;
 
 procedure TfrmMoocoderMain.actClearExecute(Sender: TObject);
@@ -589,12 +608,41 @@ end;
 
 procedure TfrmMoocoderMain.ProcessEscape(cmd:String);
 var p:String; n:Integer;
-
+    extended:Integer;
+    secondary:Integer;
+    back:Boolean;
+    xrgb:Array[0..2] of Byte;
 begin
+  extended:=0;
+  if (cmd<>'m') then exit; // Formatting codes only
   for p in escparams do
   begin
     if p='' then continue;
     n:=StrToInt(p);
+    if (extended>0) then
+    begin
+      if (extended=1) then secondary:=n
+      else if (secondary=5) then//X256
+      begin
+        if back then mycolor:=ColorX256[n and $ff]
+        else myfontcolor:=ColorX256[n and $ff];
+        extended:=0;
+        continue;
+      end
+      else if (secondary=2) then
+      begin
+        xrgb[extended-2]:=n and $ff;
+        if (extended=4) then
+        begin
+          if back then mycolor:=rgb(xrgb[0],xrgb[1],xrgb[2])
+          else myfontcolor:=rgb(xrgb[0],xrgb[1],xrgb[2]);
+          extended:=0;
+          continue;
+        end;
+      end;
+      inc(extended);
+      continue;
+    end;
     case n of
     0: ResetStyle;
     1: myfontstyle:=myfontstyle+[fsBold];
@@ -605,6 +653,10 @@ begin
     30..37: begin
               myfontcolor:=ColorTable[n mod 10];
             end;
+    38: begin back:=false; extended:=1; end;
+    40..47:
+       mycolor:=ColorTable[n mod 10];
+    48: begin back:=true; extended:=1; end;
     end;
   end;
 end;
@@ -765,8 +817,8 @@ begin
     memo1.SelAttributes.Color:=myfontcolor;
     memo1.SelAttributes.Style:=myfontstyle;
     memo1.SelAttributes.Name:='Courier';
-    memo1.seltext:=currenttext;
     SetBackColor(memo1,mycolor);
+    memo1.seltext:=currenttext;
     currenttext:='';
     SendMessage(memo1.handle, WM_VSCROLL, SB_BOTTOM, 0);
   end;
@@ -1046,12 +1098,11 @@ begin
   end
   else if pages.ActivePage=tbMain then
   begin
-    s:=lowercase(replaceStr(memo1.Lines.text,crlf,lf));
-    ix:=PosEx(lowercase(findstr),s,memo1.selstart+2);
-    if (ix<1) then ix:=Pos(lowercase(findstr),s);
-    if (ix>0) then
+    ix:=memo1.FindText(findstr,memo1.selstart+1,length(memo1.Text),[]);
+    if (ix<0) then ix:=memo1.FindText(findstr,0,length(memo1.Text),[]);
+    if (ix>=0) then
     begin
-      memo1.SelStart:=ix-1;
+      memo1.SelStart:=ix;
       memo1.SelLength:=length(findstr);
     end;
   end;
