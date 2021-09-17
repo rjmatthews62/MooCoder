@@ -6,7 +6,7 @@ This is written in Delphi 10.2, and is now using synedit for the editor, so you 
 This also acts as a simple mush client.
 
 ### Usage:
-  Settings->Connect to a mush server.
+  Settings->Connect to a moo server.
 
  Once logged in (as a programmer) use "Dump" on an object to load all the verbs into separate editable tabs. This can then be edited, and sent back to the MOO server to compile.
 
@@ -48,8 +48,6 @@ NOTE: Ansi codes are currently stripped by the @dump command. The "Get Verbs" mo
 
  Multiple instances of verbs with the same name probably won't load correctly.
 
- Need to implement indenting properly.
-
 ### Binary
 Windows binary can be found here:
 http://www.mithril.com.au/moocoder.zip
@@ -57,6 +55,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.4.0.0 - Bracket Matching, Refresh keeps cursor on line.
+
 1.3.1.0 - Got background color working.
 
 1.3.0.0 - Added support for rgb and x256 colors. Fixed "find" function on main window.
