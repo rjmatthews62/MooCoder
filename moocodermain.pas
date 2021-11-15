@@ -162,6 +162,8 @@ type
     procedure FetchProperty(propname: String);
     procedure EditorPaintTransient(Sender: TObject; Canvas: TCanvas;
       TransientType: TTransientType);
+    function ColorIndex(acolor:TColor; adefault:Integer): Integer;
+    function ColorFromIndex(n: Integer): TColor;
     { Private declarations }
   public
     { Public declarations }
@@ -174,6 +176,7 @@ type
     myparam:String;
     mycolor:TColor;
     myfontStyle:TFontStyles;
+    mybold:Boolean;
     myfontcolor:TColor;
     optioncount:Integer;
     server:String;
@@ -212,6 +215,7 @@ type
     procedure DoCheckVerbs(sender:TObject; line:String);
     procedure DoCheckProperty(sender:TObject; line:String);
     procedure DoCheckUpdate(sender:TObject; line:String);
+    procedure SetBold(abold:Boolean);
     property LineNo:Integer read GetLineNo write SetLineNo;
   end;
 
@@ -223,7 +227,8 @@ implementation
 {$R *.dfm}
 
 const
-  ColorTable:Array[0..7] of TColor = (clBlack,clRed,clLime,clYellow,clBlue,clFuchsia, clAqua,clWhite);
+  ColorTable:Array[0..7] of TColor = (clBlack,clMaroon,clGreen,clOlive,clNavy,clPurple, clTeal,clSilver);
+  ColorTableBold:Array[0..7] of TColor = (clBlack,clRed,clLime,clYellow,clBlue,clFuchsia, clAqua,clWhite);
   SE =  #240;  //End of subnegotiation parameters.
   NOP=  #241;  //No operation.
   DataMark=#242;    //The data stream portion of a Synch.
@@ -384,7 +389,40 @@ begin
     dwMask := CFM_BACKCOLOR;
     crBackColor := colorTorgb(acolor);
     re.Perform(EM_SETCHARFORMAT, SCF_SELECTION, Longint(@Format));
-  end;end;
+  end;
+end;
+
+function TfrmMoocoderMain.ColorIndex(acolor:TColor; adefault:Integer):Integer;
+var i:Integer;
+begin
+  result:=aDefault;
+  for i:=0 to 7 do
+  begin
+    if (acolor=ColorTable[i]) or (acolor=ColorTableBold[i]) then
+    begin
+      result:=i;
+      exit;
+    end;
+  end;
+end;
+
+function TfrmMoocoderMain.ColorFromIndex(n:Integer):TColor;
+begin
+  if (n<0) then n:=0;
+  if (n>7) then n:=7;
+  if myBold then result:=ColorTableBold[n]
+  else result:=ColorTable[n];
+end;
+
+procedure TfrmMoocoderMain.SetBold(abold: Boolean);
+var n:Integer;
+begin
+  mybold:=abold;
+  n:=ColorIndex(mycolor,0);
+  mycolor:=ColorFromIndex(n);
+  n:=ColorIndex(myfontcolor,7);
+  myfontcolor:=ColorFromIndex(n);
+end;
 
 procedure TfrmMoocoderMain.actClearExecute(Sender: TObject);
 var i:Integer; tb:TTabsheet;
@@ -609,7 +647,8 @@ procedure TfrmMoocoderMain.ResetStyle;
 begin
   mycolor:=clBlack;
   myfontColor:=clWhite;
-  myfontStyle:=[];
+  SetBold(false);
+  myfontStyle:=[fsBold];
 end;
 
 procedure TfrmMoocoderMain.ProcessEscape(cmd:String);
@@ -651,17 +690,19 @@ begin
     end;
     case n of
     0: ResetStyle;
-    1: myfontstyle:=myfontstyle+[fsBold];
-    2: myfontstyle:=myfontstyle-[fsBold];
+    1: SetBold(true); //myfontstyle:=myfontstyle+[fsBold];
+    2: SetBold(false); //myfontstyle:=myfontstyle-[fsBold];
     3: myfontstyle:=myfontstyle+[fsItalic];
     4: myfontstyle:=myfontstyle+[fsUnderline];
     9: myfontstyle:=myfontstyle+[fsStrikeOut];
     30..37: begin
-              myfontcolor:=ColorTable[n mod 10];
+              if mybold then myfontcolor:=ColorTableBold[n mod 10]
+              else myfontcolor:=ColorTable[n mod 10];
             end;
     38: begin back:=false; extended:=1; end;
     40..47:
-       mycolor:=ColorTable[n mod 10];
+          if mybold then mycolor:=ColorTableBold[n mod 10]
+          else mycolor:=ColorTable[n mod 10];
     48: begin back:=true; extended:=1; end;
     end;
   end;
@@ -2047,7 +2088,7 @@ begin
   end;
   Editor.GetHighlighterAttriAtRowCol(P, S, Attri);
 
-  if (Editor.Highlighter.SymbolAttribute = Attri) then
+  if (Editor.Highlighter<>nil) and (Editor.Highlighter.SymbolAttribute = Attri) then
   begin
     for i := low(OpenChars) to High(OpenChars) do
     begin
