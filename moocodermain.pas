@@ -340,10 +340,13 @@ procedure TfrmMoocoderMain.lvVerbsDblClick(Sender: TObject);
 var nd:TListItem; obj,verb:string;
 begin
   nd:=lvVerbs.Selected;
-  obj:=nd.Caption;
-  verb:=nd.SubItems[1];
-  verb:=GetSepField(verb,1,'*');
-  FindVerb(obj,verb,0);
+  if assigned(nd) then
+  begin
+    obj:=nd.Caption;
+    verb:=nd.SubItems[1];
+    verb:=GetSepField(verb,1,'*');
+    FindVerb(obj,verb,0);
+  end;
 end;
 
 procedure TfrmMoocoderMain.FindVerb(obj,verb:String; lno:Integer);
