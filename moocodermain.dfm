@@ -154,6 +154,7 @@ object frmMoocoderMain: TfrmMoocoderMain
       Font.Name = 'Tahoma'
       Font.Style = []
       ParentFont = False
+      OnResize = tbMainResize
       OnShow = tbMainShow
       object Memo1: TRichEdit
         Left = 0
@@ -374,6 +375,10 @@ object frmMoocoderMain: TfrmMoocoderMain
       object Font1: TMenuItem
         Caption = 'Font'
         OnClick = Font1Click
+      end
+      object Wrapat80chars1: TMenuItem
+        Caption = 'Wrap at 80 chars'
+        OnClick = Wrapat80chars1Click
       end
     end
     object View1: TMenuItem

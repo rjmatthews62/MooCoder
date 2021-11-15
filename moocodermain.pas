@@ -71,6 +71,7 @@ type
     oggleView1: TMenuItem;
     FontDialog1: TFontDialog;
     Font1: TMenuItem;
+    Wrapat80chars1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -112,6 +113,8 @@ type
     procedure oggleView1Click(Sender: TObject);
     procedure tbMainShow(Sender: TObject);
     procedure Font1Click(Sender: TObject);
+    procedure Wrapat80chars1Click(Sender: TObject);
+    procedure tbMainResize(Sender: TObject);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -885,7 +888,9 @@ begin
   begin
     memo1.SelectAll;
     memo1.Font.Assign(fontdialog1.Font);
+    memo1.Font.Style:=[fsBold];
     memo1.SelAttributes.Color:=clWhite;
+    tbMainResize(self);
   end;
 end;
 
@@ -903,6 +908,8 @@ begin
   propertyName:=ifile.ReadString('Settings','LastProperty','');
   fname:=ifile.ReadString('Settings','FontName','');
   fsize:=ifile.ReadInteger('Settings','FontSize',-1);
+  Wrapat80chars1.Checked:=ifile.ReadBool('Settings','CharWrap80',Wrapat80chars1.Checked);
+
   if (fname<>'') and (fsize>0) then
   begin
     memo1.Font.Name:=fname;
@@ -934,6 +941,7 @@ begin
   ifile.WriteString('Settings','LastProperty',propertyname);
   ifile.WriteString('Settings','FontName',memo1.Font.name);
   ifile.WriteInteger('Settings','FontSize',memo1.Font.size);
+  ifile.WriteBool('Settings','CharWrap80',Wrapat80chars1.Checked);
   freeandnil(ifile);
   freeandnil(msgqueue);
   freeandnil(verblist);
@@ -1744,6 +1752,12 @@ begin
   end;
 end;
 
+procedure TfrmMoocoderMain.Wrapat80chars1Click(Sender: TObject);
+begin
+  Wrapat80chars1.Checked:=not(WrapAt80Chars1.Checked);
+  tbMainResize(self);
+end;
+
 function TfrmMoocoderMain.FindVerbHelp(obj,verb:String):String;
 var re:TSynEdit; s:String;
 begin
@@ -2019,6 +2033,23 @@ begin
     re.Lines.EndUpdate;
     re.OnSelectionChange:=Memo1SelectionChange;
     re.OnChange:=Memo1Change;
+  end;
+end;
+
+procedure TfrmMoocoderMain.tbMainResize(Sender: TObject);
+begin
+  if Wrapat80chars1.Checked then
+  begin
+    Memo1.Align:=alLeft;
+    Canvas.Font.Assign(Memo1.Font);
+    Canvas.Font.Style:=[fsBold];
+    Memo1.clientWidth:=Canvas.TextWidth(StringOfChar('-',80))+4;
+    Memo1.ScrollBars:=ssNone;
+  end
+  else
+  begin
+    Memo1.Align:=alClient;
+    Memo1.ScrollBars:=ssVertical;
   end;
 end;
 
