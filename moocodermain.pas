@@ -2037,19 +2037,21 @@ begin
 end;
 
 procedure TfrmMoocoderMain.tbMainResize(Sender: TObject);
+var w:Integer;
 begin
   if Wrapat80chars1.Checked then
   begin
     Memo1.Align:=alLeft;
     Canvas.Font.Assign(Memo1.Font);
     Canvas.Font.Style:=[fsBold];
-    Memo1.clientWidth:=Canvas.TextWidth(StringOfChar('-',80))+4;
-    Memo1.ScrollBars:=ssNone;
+    w:=GetSystemMetrics(SM_CXVSCROLL);
+    Memo1.clientWidth:=Canvas.TextWidth(StringOfChar('-',80))+4+w;
+    Memo1.HideScrollBars:=false;
   end
   else
   begin
     Memo1.Align:=alClient;
-    Memo1.ScrollBars:=ssVertical;
+    Memo1.HideScrollBars:=true;
   end;
 end;
 
