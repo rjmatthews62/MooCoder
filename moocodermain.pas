@@ -899,6 +899,7 @@ begin
   moosyn.DetectPreprocessor:=true;
   FBracketFG := clWhite;
   FBracketBG := clRed;
+  caption:='Moocoder '+VersionNumber;
 end;
 
 procedure TfrmMoocoderMain.FormDestroy(Sender: TObject);
