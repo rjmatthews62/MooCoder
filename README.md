@@ -55,6 +55,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.5.0.3 - Added Font selection for Console.
+
 1.5.0.0 - Changed BOLD to operate on colours, not font style. This should fix some variable width issues.
 
 1.4.0.0 - Bracket Matching, Refresh keeps cursor on line.

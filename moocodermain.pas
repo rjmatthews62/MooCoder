@@ -69,6 +69,8 @@ type
     Edit2: TMenuItem;
     Property1: TMenuItem;
     oggleView1: TMenuItem;
+    FontDialog1: TFontDialog;
+    Font1: TMenuItem;
     procedure clientConnect(Sender: TObject; Socket: TCustomWinSocket);
     procedure clientDisconnect(Sender: TObject;
       Socket: TCustomWinSocket);
@@ -109,6 +111,7 @@ type
     procedure Property1Click(Sender: TObject);
     procedure oggleView1Click(Sender: TObject);
     procedure tbMainShow(Sender: TObject);
+    procedure Font1Click(Sender: TObject);
   private
     testtab:TTabSheet;
     getstack:Boolean;
@@ -863,7 +866,8 @@ begin
     memo1.SelStart:=length(memo1.Text);
     memo1.SelAttributes.Color:=myfontcolor;
     memo1.SelAttributes.Style:=myfontstyle;
-    memo1.SelAttributes.Name:='Courier';
+    memo1.SelAttributes.Name:=memo1.Font.Name;
+    memo1.SelAttributes.size:=memo1.Font.Size;
     SetBackColor(memo1,mycolor);
     memo1.seltext:=currenttext;
     currenttext:='';
@@ -871,7 +875,19 @@ begin
   end;
 end;
 
+procedure TfrmMoocoderMain.Font1Click(Sender: TObject);
+begin
+  fontdialog1.Font.Assign(memo1.font);
+  if FontDialog1.Execute then
+  begin
+    memo1.SelectAll;
+    memo1.Font.Assign(fontdialog1.Font);
+    memo1.SelAttributes.Color:=clWhite;
+  end;
+end;
+
 procedure TfrmMoocoderMain.FormCreate(Sender: TObject);
+var fname:String; fsize:Integer;
 begin
   ifile:=OpenIniFile('moocoder.ini');
   escparams:=TStringList.Create;
@@ -882,6 +898,13 @@ begin
   ckConnect.Checked:=client.Active;
   dumpobject:=ifile.ReadString('Settings','LastDump','');
   propertyName:=ifile.ReadString('Settings','LastProperty','');
+  fname:=ifile.ReadString('Settings','FontName','');
+  fsize:=ifile.ReadInteger('Settings','FontSize',-1);
+  if (fname<>'') and (fsize>0) then
+  begin
+    memo1.Font.Name:=fname;
+    memo1.Font.Size:=fsize;
+  end;
   verblist:=TStringList.Create;
   verblist.Sorted:=true;
   verblist.Duplicates:=dupIgnore;
@@ -906,6 +929,8 @@ procedure TfrmMoocoderMain.FormDestroy(Sender: TObject);
 begin
   ifile.WriteString('Settings','LastDump',dumpobject);
   ifile.WriteString('Settings','LastProperty',propertyname);
+  ifile.WriteString('Settings','FontName',memo1.Font.name);
+  ifile.WriteInteger('Settings','FontSize',memo1.Font.size);
   freeandnil(ifile);
   freeandnil(msgqueue);
   freeandnil(verblist);

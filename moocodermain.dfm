@@ -155,10 +155,6 @@ object frmMoocoderMain: TfrmMoocoderMain
       Font.Style = []
       ParentFont = False
       OnShow = tbMainShow
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object Memo1: TRichEdit
         Left = 0
         Top = 0
@@ -188,10 +184,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     object tbVerbs: TTabSheet
       Caption = 'Verbs'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object lvVerbs: TListView
         Left = 0
         Top = 0
@@ -379,6 +371,10 @@ object frmMoocoderMain: TfrmMoocoderMain
         Caption = 'Connection'
         OnClick = Connection1Click
       end
+      object Font1: TMenuItem
+        Caption = 'Font'
+        OnClick = Font1Click
+      end
     end
     object View1: TMenuItem
       Caption = '&View'
@@ -425,5 +421,15 @@ object frmMoocoderMain: TfrmMoocoderMain
   object SynEditSearch1: TSynEditSearch
     Left = 532
     Top = 231
+  end
+  object FontDialog1: TFontDialog
+    Font.Charset = DEFAULT_CHARSET
+    Font.Color = clWindowText
+    Font.Height = -16
+    Font.Name = 'Courier'
+    Font.Style = []
+    Options = [fdEffects, fdFixedPitchOnly]
+    Left = 324
+    Top = 151
   end
 end
