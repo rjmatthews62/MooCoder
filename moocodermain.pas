@@ -700,7 +700,7 @@ begin
     case n of
     0: ResetStyle;
     1: SetBold(true); //myfontstyle:=myfontstyle+[fsBold];
-    2: SetBold(false); //myfontstyle:=myfontstyle-[fsBold];
+    2,22: SetBold(false); //myfontstyle:=myfontstyle-[fsBold];
     3: myfontstyle:=myfontstyle+[fsItalic];
     4: myfontstyle:=myfontstyle+[fsUnderline];
     9: myfontstyle:=myfontstyle+[fsStrikeOut];

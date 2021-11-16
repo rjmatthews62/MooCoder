@@ -55,6 +55,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.5.4.0 - Fixed "Unbold" support.
+
 1.5.3.0 - Added "Wrap at 80 Chars" settings option
 
 1.5.1.0 - Added Font selection for Console, fixed minor access violation on Verbs list.
