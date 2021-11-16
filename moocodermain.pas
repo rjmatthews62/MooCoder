@@ -130,6 +130,7 @@ type
     propertyName:String;
     propertyValue:String;
     FBracketFG,FBracketBG:TColor;
+    defbold:Boolean;
 
     procedure ProcessEscape(cmd: String);
     procedure ResetStyle;
@@ -657,7 +658,7 @@ begin
   mycolor:=clBlack;
   myfontColor:=clWhite;
   SetBold(false);
-  myfontStyle:=[fsBold];
+  if defbold then myfontStyle:=[fsBold] else myfontstyle:=[];
 end;
 
 procedure TfrmMoocoderMain.ProcessEscape(cmd:String);
@@ -886,10 +887,14 @@ begin
   fontdialog1.Font.Assign(memo1.font);
   if FontDialog1.Execute then
   begin
-    memo1.SelectAll;
+    defbold:=fsBold in FontDialog1.Font.Style;
+    if defbold then fontdialog1.Font.Style:=[fsBold] else fontDialog1.Font.Style:=[];
     memo1.Font.Assign(fontdialog1.Font);
-    memo1.Font.Style:=[fsBold];
-    memo1.SelAttributes.Color:=clWhite;
+    memo1.SelectAll;
+    memo1.SelAttributes.Name:=memo1.Font.Name;
+    memo1.SelAttributes.Size:=memo1.Font.size;
+    memo1.SelAttributes.style:=memo1.Font.Style;
+    ResetStyle;
     tbMainResize(self);
   end;
 end;
@@ -900,7 +905,7 @@ begin
   ifile:=OpenIniFile('moocoder.ini');
   escparams:=TStringList.Create;
   mycolor:=clBlack;
-  myfontStyle:=[];
+  myfontStyle:=[fsBold];
   myfontcolor:=clwhite;
   msgqueue:=TStringList.Create;
   ckConnect.Checked:=client.Active;
@@ -908,6 +913,7 @@ begin
   propertyName:=ifile.ReadString('Settings','LastProperty','');
   fname:=ifile.ReadString('Settings','FontName','');
   fsize:=ifile.ReadInteger('Settings','FontSize',-1);
+  defbold:=ifile.ReadBool('Settings','FontBold',false);
   Wrapat80chars1.Checked:=ifile.ReadBool('Settings','CharWrap80',Wrapat80chars1.Checked);
 
   if (fname<>'') and (fsize>0) then
@@ -915,6 +921,7 @@ begin
     memo1.Font.Name:=fname;
     memo1.Font.Size:=fsize;
   end;
+  resetStyle;
   verblist:=TStringList.Create;
   verblist.Sorted:=true;
   verblist.Duplicates:=dupIgnore;
@@ -941,7 +948,9 @@ begin
   ifile.WriteString('Settings','LastProperty',propertyname);
   ifile.WriteString('Settings','FontName',memo1.Font.name);
   ifile.WriteInteger('Settings','FontSize',memo1.Font.size);
+  ifile.WriteBool('Settings','FontBold',defbold);
   ifile.WriteBool('Settings','CharWrap80',Wrapat80chars1.Checked);
+
   freeandnil(ifile);
   freeandnil(msgqueue);
   freeandnil(verblist);
@@ -2043,7 +2052,7 @@ begin
   begin
     Memo1.Align:=alLeft;
     Canvas.Font.Assign(Memo1.Font);
-    Canvas.Font.Style:=[fsBold];
+    if defbold then Canvas.Font.Style:=[fsBold] else Canvas.Font.Style:=[];
     w:=GetSystemMetrics(SM_CXVSCROLL);
     Memo1.clientWidth:=Canvas.TextWidth(StringOfChar('-',80))+4+w;
     Memo1.HideScrollBars:=false;
