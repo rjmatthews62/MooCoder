@@ -5,8 +5,8 @@
 # The "notify_lines_suspended" is a cut and paste of the existing player:notify_lines_suspended, with
 # player:notify replaced with notify(player)
 
-@verb $prog:"notify_lines_suspended" this none this
-@program $prog:notify_lines_suspended
+@verb $prog:"notify_lines_suspended_na" tnt
+@program $prog:notify_lines_suspended_na
 "Version of notify_lines_suspended that bypasses the ansi module.";
 if (($perm_utils:controls(caller_perms(), this) || (caller == this)) || (caller_perms() == this))
   set_task_perms(caller_perms());
@@ -57,14 +57,14 @@ if (create)
   notify(player, $code_utils:dump_preamble(dobj));
 endif
 if ("props" in options)
-  this:notify_lines_suspended($code_utils:dump_properties(dobj, create, targname));
+  this:notify_lines_suspended_na($code_utils:dump_properties(dobj, create, targname));
 endif
 if (!("verbs" in options))
   player:notify("\"***finished***");
   return;
 endif
 player:notify("");
-this:notify_lines_suspended($code_utils:dump_verbs(dobj, create, targname));
+this:notify_lines_suspended_na($code_utils:dump_verbs(dobj, create, targname));
 player:notify("\"***finished***");
 .
 
