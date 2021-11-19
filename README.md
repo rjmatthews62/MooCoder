@@ -42,8 +42,8 @@ This also acts as a simple mush client.
 Ctrl+up and Ctrl+Down will scroll you through your command history.
 
 NOTE: Ansi codes are currently stripped by the @dump command. The "Get Verbs" mostly deals with this OK. It is something to be aware of.
-This moocode will modify the @dump command to avoid the issue:
-http://improved_dump.txt
+"improved_dump.txt" is moocode will modify the @dump command to avoid the issue.
+
 
 ### Not working yet
  This is not idiot proofed.
