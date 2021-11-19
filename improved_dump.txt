@@ -1,0 +1,70 @@
+# @dump as currently implemented uses player:notify* verbs, which are intercepted by the ansi interpreter,
+# which has the nasty side effect of stripping out any embedded ansi codes from the output.
+# The replaces references to player:notify with notify(player), which means that the code is dumped
+# cleanly and without ansi parsing.
+# The "notify_lines_suspended" is a cut and paste of the existing player:notify_lines_suspended, with
+# player:notify replaced with notify(player)
+
+@verb $prog:"notify_lines_suspended" this none this
+@program $prog:notify_lines_suspended
+"Version of notify_lines_suspended that bypasses the ansi module.";
+if (($perm_utils:controls(caller_perms(), this) || (caller == this)) || (caller_perms() == this))
+  set_task_perms(caller_perms());
+  for line in ((typeof(lines = args[1]) != LIST) ? {lines} | lines)
+    $command_utils:suspend_if_needed(0);
+    notify(player, tostr(line));
+  endfor
+else
+  return E_PERM;
+endif
+.
+
+@program $prog:@dump
+"@dump something [with [id=...] [noprops] [noverbs] [create]]";
+"This spills out all properties and verbs on an object, calling suspend at appropriate intervals.";
+"   id=#nnn -- specifies an idnumber to use in place of the object's actual id (for porting to another MOO)";
+"   noprops -- don't show properties.";
+"   noverbs -- don't show verbs.";
+"   create  -- indicates that a @create command should be generated and all of the verbs be introduced with @verb rather than @args; the default assumption is that the object already exists and you're just doing this to have a look at it.";
+set_task_perms(player);
+dobj = player:my_match_object(dobjstr);
+if ($command_utils:object_match_failed(dobj, dobjstr))
+  return;
+endif
+if (prepstr && (prepstr != "with"))
+  player:notify(tostr("Usage:  ", verb, " something [with [id=...] [noprops] [noverbs] [create]]"));
+  return;
+endif
+targname = tostr(dobj);
+options = {"props", "verbs"};
+create = 0;
+if (iobjstr)
+  for o in ($string_utils:explode(iobjstr))
+    if (index(o, "id=") == 1)
+      targname = o[4..$];
+    elseif (o in {"noprops", "noverbs"})
+      options = setremove(options, o[3..$]);
+    elseif (o in {"create"})
+      create = 1;
+    else
+      player:notify(tostr("`", o, "' not understood as valid option."));
+      player:notify(tostr("Usage:  ", verb, " something [with [id=...] [noprops] [noverbs] [create]]"));
+      return;
+    endif
+  endfor
+endif
+if (create)
+  notify(player, $code_utils:dump_preamble(dobj));
+endif
+if ("props" in options)
+  this:notify_lines_suspended($code_utils:dump_properties(dobj, create, targname));
+endif
+if (!("verbs" in options))
+  player:notify("\"***finished***");
+  return;
+endif
+player:notify("");
+this:notify_lines_suspended($code_utils:dump_verbs(dobj, create, targname));
+player:notify("\"***finished***");
+.
+
