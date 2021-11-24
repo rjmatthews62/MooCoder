@@ -57,6 +57,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.5.5.0 - Added support for mousewheel scrolling.
+
 1.5.4.1 - Improved font style handling.
 
 1.5.4.0 - Fixed "Unbold" support.
