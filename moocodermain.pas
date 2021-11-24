@@ -12,6 +12,18 @@ uses
 type
   TxControl = class of TControl;
 
+  // Allow access to mousewheel
+  TEdit = class(Vcl.StdCtrls.Tedit)
+  public
+    property OnMouseWheel;
+  end;
+  TMemo = class(Vcl.StdCtrls.TMemo)
+    property OnMouseWheel;
+  end;
+  TListView = class(Vcl.Comctrls.TListView)
+    property OnMouseWheel;
+  end;
+
   TExamineLine = procedure(sender:TObject; line:String) of object;
   TfrmMoocoderMain = class(TForm)
     Panel1: TPanel;
@@ -171,6 +183,10 @@ type
       TransientType: TTransientType);
     function ColorIndex(acolor:TColor; adefault:Integer): Integer;
     function ColorFromIndex(n: Integer): TColor;
+    procedure Edit1MouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure MemoMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure LvMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+    procedure SynEditMouseWheel(Sender: TObject; Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
     { Private declarations }
   public
     { Public declarations }
@@ -298,6 +314,19 @@ begin
   edit1.Text:=memoHistory.Lines[lno];
   edit1.SetFocus;
   edit1.SelStart:=length(edit1.Text);
+end;
+
+procedure TfrmMoocoderMain.LvMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var lv:TListView; lno:Integer;
+begin
+  if not(Sender is TListView) then exit;
+  lv:=Sender as TListView;
+  lno:=lv.ItemIndex;
+  if (WheelDelta>0) then dec(lno) else inc(lno);
+  if (lno<0) then lno:=0
+  else if lno>=lv.Items.Count then lno:=lv.Items.Count-1;
+  lv.ItemIndex:=lno;
 end;
 
 procedure TfrmMoocoderMain.lvVerbsColumnClick(Sender: TObject;
@@ -915,12 +944,14 @@ begin
   fsize:=ifile.ReadInteger('Settings','FontSize',-1);
   defbold:=ifile.ReadBool('Settings','FontBold',false);
   Wrapat80chars1.Checked:=ifile.ReadBool('Settings','CharWrap80',Wrapat80chars1.Checked);
-
   if (fname<>'') and (fsize>0) then
   begin
     memo1.Font.Name:=fname;
     memo1.Font.Size:=fsize;
   end;
+  Edit1.OnMouseWheel:=Edit1MouseWheel;
+  memoHistory.OnMouseWheel:=MemoMousewheel;
+  lvVerbs.OnMouseWheel:=LvMouseWheel;
   resetStyle;
   verblist:=TStringList.Create;
   verblist.Sorted:=true;
@@ -1044,6 +1075,20 @@ begin
       FetchVerb(obj,verb);
     end;
   end
+end;
+
+procedure TfrmMoocoderMain.MemoMouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+var m:TMemo; lno:Integer;
+begin
+  if not(Sender is TMemo) then exit;
+  m:=Sender as TMemo;
+  lno:=m.Perform(EM_LINEFROMCHAR, m.SelStart, 0);
+  if (wheeldelta>0) then dec(lno)
+  else inc(lno);
+  if (lno<0) then lno:=0
+  else if lno>=m.Lines.Count then lno:=m.Lines.Count-1;
+  m.SelStart:=m.Perform(EM_LINEINDEX,lno,0);
 end;
 
 procedure TfrmMoocoderMain.NewTab1Click(Sender: TObject);
@@ -1908,6 +1953,7 @@ begin
   edit.Align:=alClient;
   edit.Text:='';
   edit.Perform(EM_SETTEXTMODE,TM_MULTILEVELUNDO or TM_RICHTEXT,0);
+  edit.OnMouseWheel:=SynEditMouseWheel;
 //  adddebug('Undo='+inttostr(edit.Perform(EM_SETUNDOLIMIT,20,0)));
   edit.text:=txt;
   edit.Font.Charset := DEFAULT_CHARSET;
@@ -1946,6 +1992,17 @@ begin
     ed.Align:=alClient;
   end;
   exit(tb);
+end;
+
+procedure TfrmMoocoderMain.SynEditMouseWheel(Sender: TObject;
+  Shift: TShiftState; WheelDelta: Integer; MousePos: TPoint;
+  var Handled: Boolean);
+var e:TSynEdit; lno:Integer;
+begin
+  if not(sender is TSynEdit) then exit;
+  e:=sender as TSynEdit;
+  if WheelDelta<0 then e.CaretY:=e.CaretY+1
+  else e.CaretY:=e.CaretY-1;
 end;
 
 procedure TfrmMoocoderMain.SyntaxHighlight(re:TRichEdit; lno:Integer);
@@ -2082,6 +2139,13 @@ begin
   re.SelStart:=re.Perform(EM_LINEINDEX,lno,0)+(x-1);
   re.SelLength:=len;
   re.SelAttributes.Color:=color;
+end;
+
+procedure TfrmMoocoderMain.Edit1MouseWheel(Sender: TObject; Shift: TShiftState;
+  WheelDelta: Integer; MousePos: TPoint; var Handled: Boolean);
+begin
+  if WheelDelta<0 then NextCommand1Click(sender)
+  else LastCommand1Click(sender);
 end;
 
 procedure TfrmMoocoderMain.EditorPaintTransient(Sender: TObject; Canvas: TCanvas;

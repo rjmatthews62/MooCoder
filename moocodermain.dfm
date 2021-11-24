@@ -141,7 +141,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Top = 0
     Width = 597
     Height = 313
-    ActivePage = tbMain
+    ActivePage = tbVerbs
     Align = alClient
     MultiLine = True
     TabOrder = 2
@@ -258,6 +258,8 @@ object frmMoocoderMain: TfrmMoocoderMain
     TabOrder = 5
     Visible = False
     OnDblClick = memoDebugDblClick
+    ExplicitLeft = 599
+    ExplicitTop = -3
   end
   object client: TClientSocket
     Active = False
