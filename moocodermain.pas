@@ -1089,6 +1089,7 @@ begin
   if (lno<0) then lno:=0
   else if lno>=m.Lines.Count then lno:=m.Lines.Count-1;
   m.SelStart:=m.Perform(EM_LINEINDEX,lno,0);
+
 end;
 
 procedure TfrmMoocoderMain.NewTab1Click(Sender: TObject);
@@ -2002,6 +2003,7 @@ begin
   if not(sender is TSynEdit) then exit;
   e:=sender as TSynEdit;
   e.ScrollBy(0,wheelDelta);
+  e.Refresh;
 end;
 
 procedure TfrmMoocoderMain.SyntaxHighlight(re:TRichEdit; lno:Integer);

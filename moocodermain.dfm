@@ -156,10 +156,6 @@ object frmMoocoderMain: TfrmMoocoderMain
       ParentFont = False
       OnResize = tbMainResize
       OnShow = tbMainShow
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object Memo1: TRichEdit
         Left = 0
         Top = 0
@@ -189,10 +185,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     object tbVerbs: TTabSheet
       Caption = 'Verbs'
       ImageIndex = 1
-      ExplicitLeft = 0
-      ExplicitTop = 0
-      ExplicitWidth = 0
-      ExplicitHeight = 0
       object lvVerbs: TListView
         Left = 0
         Top = 0
@@ -252,6 +244,7 @@ object frmMoocoderMain: TfrmMoocoderMain
     Font.Name = 'Tahoma'
     Font.Style = []
     ParentFont = False
+    ScrollBars = ssVertical
     TabOrder = 4
     WordWrap = False
   end
@@ -266,8 +259,6 @@ object frmMoocoderMain: TfrmMoocoderMain
     TabOrder = 5
     Visible = False
     OnDblClick = memoDebugDblClick
-    ExplicitLeft = 599
-    ExplicitTop = -3
   end
   object client: TClientSocket
     Active = False
