@@ -2001,8 +2001,7 @@ var e:TSynEdit; lno:Integer;
 begin
   if not(sender is TSynEdit) then exit;
   e:=sender as TSynEdit;
-  if WheelDelta<0 then e.CaretY:=e.CaretY+1
-  else e.CaretY:=e.CaretY-1;
+  e.ScrollBy(0,wheelDelta);
 end;
 
 procedure TfrmMoocoderMain.SyntaxHighlight(re:TRichEdit; lno:Integer);

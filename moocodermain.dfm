@@ -156,6 +156,10 @@ object frmMoocoderMain: TfrmMoocoderMain
       ParentFont = False
       OnResize = tbMainResize
       OnShow = tbMainShow
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object Memo1: TRichEdit
         Left = 0
         Top = 0
@@ -185,6 +189,10 @@ object frmMoocoderMain: TfrmMoocoderMain
     object tbVerbs: TTabSheet
       Caption = 'Verbs'
       ImageIndex = 1
+      ExplicitLeft = 0
+      ExplicitTop = 0
+      ExplicitWidth = 0
+      ExplicitHeight = 0
       object lvVerbs: TListView
         Left = 0
         Top = 0
