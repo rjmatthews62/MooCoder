@@ -57,6 +57,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.5.6.0 - Fixed flicker in edit windows while mousewheel scrolling
+
 1.5.5.2 - Improved mousewheel scrolling.
 
 1.5.5.0 - Added support for mousewheel scrolling.

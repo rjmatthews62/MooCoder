@@ -2002,8 +2002,10 @@ var e:TSynEdit; lno:Integer;
 begin
   if not(sender is TSynEdit) then exit;
   e:=sender as TSynEdit;
+  if (wheelDelta>0) and (e.TopLine=1) then exit;
+  if (wheeldelta<0) and (e.TopLine+e.LinesInWindow>=e.DisplayLineCount) then exit;
   e.ScrollBy(0,wheelDelta);
-  e.Refresh;
+  e.Invalidate;
 end;
 
 procedure TfrmMoocoderMain.SyntaxHighlight(re:TRichEdit; lno:Integer);
