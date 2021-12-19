@@ -250,7 +250,7 @@ implementation
 {$R *.dfm}
 
 const
-  ColorTable:Array[0..7] of TColor = (clBlack,clMaroon,clGreen,clOlive,clNavy,clPurple, clTeal,clSilver);
+  ColorTable:Array[0..7] of TColor = (clBlack,$0000c0,$00c000,$00c0c0,$c00000,$c000c0, $c0c000,clSilver);
   ColorTableBold:Array[0..7] of TColor = (clBlack,clRed,clLime,clYellow,clBlue,clFuchsia, clAqua,clWhite);
   SE =  #240;  //End of subnegotiation parameters.
   NOP=  #241;  //No operation.
