@@ -1744,7 +1744,7 @@ begin
         s:=trim(s);
         if (s.StartsWith('"')) then delete(s,1,1);
         if (s.EndsWith('"')) then delete(s,length(s),1);
-        t.Add(trim(s));
+        t.Add(trimright(s));
         s:='';
       end
       else

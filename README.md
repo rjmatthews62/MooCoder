@@ -57,6 +57,8 @@ http://www.mithril.com.au/moocoder.zip
 It is a single exe file. Unzip to anywhere and just run it.
 
 ### Release Notes ###
+1.5.8.0 - Edit Text now handles leading spaces correctly.
+
 1.5.7.0 - Made unbold basic ansi colours brighter.
 
 1.5.6.0 - Fixed flicker in edit windows while mousewheel scrolling
