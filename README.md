@@ -5,6 +5,8 @@ This is written in Delphi 10.2, and is now using synedit for the editor, so you 
 
 This also acts as a simple mush client.
 
+There is now a version written in Python3 with Tkinter, that ought to run in just about any desktop environment. https://github.com/rjmatthews62/MooCoderPy
+
 ### Usage:
   Settings->Connect to a moo server.
 
